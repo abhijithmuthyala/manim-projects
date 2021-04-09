@@ -1,4 +1,3 @@
-from manim.mobject.svg.tex_mobject import Tex
 from manimlib import *
 from math import degrees
 
@@ -24,7 +23,7 @@ class CameraOrientations(ThreeDScene):
 
         tracker_groups = VGroup(
             *[
-                VGroup(Tex(text + " ="), DecimalNumber(degrees(val)).scale(0.8))
+                VGroup(TexText(text + " ="), DecimalNumber(degrees(val)).scale(0.8))
                 .arrange(RIGHT)
                 .set_color(col)
                 for text, val, col in zip(tracker_texts, frame.euler_angles, colors)
@@ -39,7 +38,7 @@ class CameraOrientations(ThreeDScene):
             axis.add(vect)
             axis.vect = vect
 
-        title = Tex("Euler Angles", " :")
+        title = TexText("Euler Angles", " :")
         title[0].set_color_by_gradient(*colors)
         title.add(Underline(title[0]))
         title.next_to(tracker_groups, UP, aligned_edge=LEFT)
