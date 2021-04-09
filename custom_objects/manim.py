@@ -15,3 +15,16 @@ class Blob(VMobject):
             for theta in np.linspace(0, TAU, n_samples, False)
         ]
         self.set_points_smoothly([*points, points[0]])
+
+
+class EquilateralTriangle(Triangle):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @property
+    def inradius(self):
+        return get_norm(self.get_vertices()[0] - self.get_center_of_mass())
+
+    @property
+    def incenter(self):
+        return self.get_center_of_mass()
