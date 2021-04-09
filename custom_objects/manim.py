@@ -18,13 +18,25 @@ class Blob(VMobject):
 
 
 class EquilateralTriangle(Triangle):
-    def __init__(self, **kwargs):
+    def __init__(self, side_length=2, **kwargs):
         super().__init__(**kwargs)
+        self.side_length = side_length
 
     @property
     def inradius(self):
-        return get_norm(self.get_vertices()[0] - self.get_center_of_mass())
+        return get_norm(self.get_vertices()[0] - self.incenter)
 
     @property
     def incenter(self):
         return self.get_center_of_mass()
+
+    @property
+    def side_length(self):
+        return self._side_length
+
+    @side_length.setter
+    def side_length(self, side_length):
+        self._side_length = side_length
+        self.scale(
+            side_length / (np.sqrt(3) * self.inradius), about_point=self.incenter
+        )
