@@ -102,8 +102,12 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.ce_env
+.3b1b_env
 .env
 .venv
+ce_env/
+3b1b_env/
 env/
 venv/
 ENV/
@@ -127,3 +131,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vscode
+/.vscode/
+
+# test modules
+*test.*
+
+# media
+media/
