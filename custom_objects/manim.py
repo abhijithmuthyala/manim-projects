@@ -37,6 +37,9 @@ class EquilateralTriangle(Triangle):
     @side_length.setter
     def side_length(self, side_length):
         self._side_length = side_length
-        self.scale(
-            side_length / (np.sqrt(3) * self.inradius), about_point=self.incenter
-        )
+        self.scale(side_length / (np.sqrt(3) * self.inradius))
+
+    def scale(self, scale_factor, about_point=None, **kwargs):
+        if about_point is None:
+            about_point = self.incenter
+        return Mobject.scale(self, scale_factor, about_point=about_point, **kwargs)
