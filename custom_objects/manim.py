@@ -23,12 +23,16 @@ class EquilateralTriangle(Triangle):
         self.side_length = side_length
 
     @property
-    def inradius(self):
-        return get_norm(self.get_vertices()[0] - self.incenter)
+    def circumradius(self):
+        return get_norm(self.get_vertices()[0] - self.circumcenter)
 
     @property
-    def incenter(self):
+    def circumcenter(self):
         return self.get_center_of_mass()
+
+    @property
+    def inradius(self):
+        return self.side_length / (2*np.sqrt(3))
 
     @property
     def side_length(self):
@@ -37,9 +41,9 @@ class EquilateralTriangle(Triangle):
     @side_length.setter
     def side_length(self, side_length):
         self._side_length = side_length
-        self.scale(side_length / (np.sqrt(3) * self.inradius))
+        self.scale(side_length / (np.sqrt(3) * self.circumradius))
 
     def scale(self, scale_factor, about_point=None, **kwargs):
         if about_point is None:
-            about_point = self.incenter
+            about_point = self.circumcenter
         return Mobject.scale(self, scale_factor, about_point=about_point, **kwargs)
