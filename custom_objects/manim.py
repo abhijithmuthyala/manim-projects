@@ -48,3 +48,11 @@ class EquilateralTriangle(Triangle):
         Mobject.scale(self, scale_factor, about_point=about_point, **kwargs)
         self._side_length = self.circumradius * np.sqrt(3)
         return self
+
+    def get_foot_of_perpendicular_from_point(self, line_index, point):
+        # There is a formula to get fop, but hey I love vectors, so why not!
+        vertices = self.get_vertices()
+        vertices = np.append(vertices, [vertices[0]], 0)
+        vertex1, vertex2 = vertices[line_index: line_index+2]
+        unit_vect = normalize(vertex2 - vertex1) 
+        return vertex1 + unit_vect * np.dot(np.array(point)-vertex1, unit_vect)
