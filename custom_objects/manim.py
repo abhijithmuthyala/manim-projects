@@ -51,16 +51,18 @@ class EquilateralTriangle(Triangle):
         self._side_length = self.circumradius * np.sqrt(3)
         return self
 
-    def get_foot_of_perpendicular_from_point(self, line_index, point):
+    def get_projection_onto_edge(self, edge_index, point):
         # There is a formula to get fop, but hey I love vectors, so why not!
         vertices = self.get_vertices()
         vertices = np.append(vertices, [vertices[0]], 0)
-        vertex1, vertex2 = vertices[line_index : line_index + 2]
-        return get_foot_of_perpendicular_from_point(vertex1, vertex2, point)
+        vertex1, vertex2 = vertices[edge_index : edge_index + 2]
+        return project_along_line(vertex1, vertex2, point)
 
     def get_perpendicular_line_to_edge(
-        self, line_index, point, line_class=Line, **kwargs
+        self, edge_index, point, line_class=Line, **kwargs
     ):
-        return line_class(
-            point, self.get_perpendicular_line_to_edge(line_index, point), **kwargs
+        line = line_class(
+            point, self.get_projection_onto_edge(edge_index, point), **kwargs
         )
+        line.edge_index = edge_index
+        return line

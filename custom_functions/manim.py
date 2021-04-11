@@ -2,7 +2,7 @@ from manim import *
 from manim.opengl import *
 
 
-def get_foot_of_perpendicular_from_point(vertex1, vertex2, point):
+def project_along_line(vertex1, vertex2, point):
     """
     Given 2 vertices defining a line, return
     the projection of point on that line
