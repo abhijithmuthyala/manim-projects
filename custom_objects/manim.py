@@ -57,3 +57,10 @@ class EquilateralTriangle(Triangle):
         vertices = np.append(vertices, [vertices[0]], 0)
         vertex1, vertex2 = vertices[line_index : line_index + 2]
         return get_foot_of_perpendicular_from_point(vertex1, vertex2, point)
+
+    def get_perpendicular_line_to_edge(
+        self, line_index, point, line_class=Line, **kwargs
+    ):
+        return line_class(
+            point, self.get_perpendicular_line_to_edge(line_index, point), **kwargs
+        )
