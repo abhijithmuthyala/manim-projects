@@ -1,6 +1,8 @@
 from manim import *
 from manim.opengl import *
 
+from custom_functions.manim import *
+
 
 class Blob(VMobject):
     def __init__(
@@ -53,6 +55,5 @@ class EquilateralTriangle(Triangle):
         # There is a formula to get fop, but hey I love vectors, so why not!
         vertices = self.get_vertices()
         vertices = np.append(vertices, [vertices[0]], 0)
-        vertex1, vertex2 = vertices[line_index: line_index+2]
-        unit_vect = normalize(vertex2 - vertex1) 
-        return vertex1 + unit_vect * np.dot(np.array(point)-vertex1, unit_vect)
+        vertex1, vertex2 = vertices[line_index : line_index + 2]
+        return get_foot_of_perpendicular_from_point(vertex1, vertex2, point)
