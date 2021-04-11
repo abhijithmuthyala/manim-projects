@@ -32,7 +32,7 @@ class EquilateralTriangle(Triangle):
 
     @property
     def inradius(self):
-        return self.side_length / (2 * np.sqrt(3))
+        return self._side_length / (2 * np.sqrt(3))
 
     @property
     def side_length(self):
