@@ -25,24 +25,24 @@ class EquilateralTriangle(Triangle):
         self.side_length = side_length
 
     @property
-    def circumradius(self):
-        return get_norm(self.get_vertices()[0] - self.circumcenter)
-
-    @property
-    def circumcenter(self):
-        return self.get_center_of_mass()
-
-    @property
-    def inradius(self):
-        return self._side_length / (2 * np.sqrt(3))
-
-    @property
     def side_length(self):
         return self._side_length
 
     @side_length.setter
     def side_length(self, side_length):
         self.scale(side_length / (np.sqrt(3) * self.circumradius))
+
+    @property
+    def circumcenter(self):
+        return self.get_center_of_mass()
+    
+    @property
+    def circumradius(self):
+        return get_norm(self.get_vertices()[0] - self.circumcenter)
+
+    @property
+    def inradius(self):
+        return self._side_length / (2 * np.sqrt(3))
 
     def scale(self, scale_factor, about_point=None, **kwargs):
         if about_point is None:
