@@ -1,3 +1,9 @@
+"""
+Commit above which this project is made:
+https://github.com/ManimCommunity/manim/commit/3156b9f20aa33f559e6f288d38cfd4a4db456389
+"""
+
+
 from manim import *
 from manim.opengl import *
 from manim_fonts import *
