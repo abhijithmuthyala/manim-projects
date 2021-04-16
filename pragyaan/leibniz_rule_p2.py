@@ -169,7 +169,6 @@ class ExtendToGeneralCase2(GraphScene):
         self.wait(2)
 
         # show area changing with t
-        # no need of adding updater to curve ; as long the the updater is not removed, it applies
         area.add_updater(
             lambda a: a.become(self.get_area_under_curve(curve, t_tracker.get_value()))
         )

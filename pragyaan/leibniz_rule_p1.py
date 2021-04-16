@@ -76,7 +76,7 @@ class IntroAndIntegrals(GraphScene):
 
     def recollect_integral(self, **graph_kwargs):
 
-        self.setup_axes()  # Use self.setup_axes(animate=True) and comment the line 83
+        self.setup_axes()
 
         curve = self.get_graph(self.func)
         graph = VGroup(self.axes, curve).to_edge(LEFT)
@@ -90,9 +90,6 @@ class IntroAndIntegrals(GraphScene):
         self.wait(1.5)
         self.play(Write(fx), lag_ratio=0.3, run_time=4)
         self.wait()
-        self.show_axes(
-            run_time=0.5, lag_ratio=0
-        )  # This won't work for you, comment this line.
         self.play(ShowCreation(curve), run_time=1)
         self.wait()
 

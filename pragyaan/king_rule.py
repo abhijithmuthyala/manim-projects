@@ -22,16 +22,14 @@ def get_area(axes, graph, x_min, x_max, **area_style):
     return area
 
 
-class IntroScene(GraphScene):  # Do this in a video editor??
+class IntroScene(GraphScene):
     CONFIG = dict(
         x_axis_width=5.5, x_min=0, x_max=8.5, y_max=7, y_min=0, y_axis_height=4.5
     )
 
     def setup(
         self,
-    ):  # In manim, setup method will be executed before the construct method
-        # self.camera.background_image = "FadedBoard2.png"
-        # self.camera.init_background()
+    ):
         self.fx = lambda x: 0.05 * x ** 3 - 0.5 * x ** 2 + x + 5
         super().setup()
 
@@ -181,8 +179,6 @@ class KingRule(GraphScene):
     CONFIG = dict(x_max=9, x_axis_width=8)
 
     def setup(self):
-        # self.camera.background_image = "FadedBoard2.png"
-        # self.camera.init_background()
         self.fx = lambda x: 0.05 * x ** 3 - 0.5 * x ** 2 + x + 7
         super().setup()
         self.axes.to_edge(DOWN + LEFT, buff=1)
@@ -421,9 +417,6 @@ class KingRule(GraphScene):
 # shouldn't really be done with manim, prefer powerpoint and desmos instead
 class ExampleScene(Scene):
     def construct(self):
-        #         self.camera.background_image = "FadedBoard2.png"
-        #         self.camera.init_background()
-
         question = (
             VGroup(
                 Text("Q. Evaluate "),

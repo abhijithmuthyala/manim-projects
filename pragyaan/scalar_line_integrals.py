@@ -313,7 +313,6 @@ class SingleIntegralScene(GraphScene):
     def update_riemann_rectangles(
         self, rects, step, n_iters, wait_time=0.5, *added_anims, **transform_kwargs
     ):
-        # n_rects = rects.n_rects
         for _ in range(n_iters):
             n_rects = len(rects) + step
             self.play(
@@ -323,7 +322,6 @@ class SingleIntegralScene(GraphScene):
                 *added_anims
             )
             self.wait(wait_time)
-            # rects.n_rects = n_rects
 
     def raise_riemann_rectangles(
         self, rectangles, added_anims=None, **rect_anim_kwargs
@@ -353,9 +351,7 @@ class OpeningSceneSingleIntegrals(SingleIntegralScene):
 
     def construct(self):
         title = Text("Single Integrals").scale(1.5).to_edge(UP)
-        title.set_color_by_gradient(
-            *[r.get_color() for r in self.area]
-        )  # avasarama adhyaksha!
+        title.set_color_by_gradient(*[r.get_color() for r in self.area])
         title.add(Underline(title))
         riemann_rects = self.get_riemann_rectangles(8)
 
