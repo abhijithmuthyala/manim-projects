@@ -35,7 +35,7 @@ class EquilateralTriangle(Triangle):
     @property
     def circumcenter(self):
         return self.get_center_of_mass()
-    
+
     @property
     def circumradius(self):
         return get_norm(self.get_vertices()[0] - self.circumcenter)
@@ -66,3 +66,16 @@ class EquilateralTriangle(Triangle):
         )
         line.edge_index = edge_index
         return line
+
+
+class UnitSizeAxes(Axes):
+    def __init__(self, x_range=None, y_range=None, snap_to_world_origin=True, **kwargs):
+        if "axis_config" in kwargs.keys():
+            kwargs["axis_config"].update(unit_size=1)
+
+        super().__init__(
+            x_range=x_range, y_range=y_range, x_length=None, y_length=None, **kwargs
+        )
+
+        if snap_to_world_origin:
+            self.shift(-self.c2p(0, 0))
