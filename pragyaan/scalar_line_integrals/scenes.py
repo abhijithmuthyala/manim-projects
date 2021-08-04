@@ -1,45 +1,16 @@
+from math import radians as rad
+
+from functions import *
 from manimlib import *
 from manimlib.once_useful_constructs.graph_scene import GraphScene
 
-from math import radians as rad
-
 from pragyaan.manim_demos.surface_demo import plane_config, z_axis_config
-from custom_functions.manimgl import (
-    get_parametric_curve,
-    c2p,
-    p2c,
-    flatten_rectangle,
-    flatten_area,
-    flatten_curve,
-)  # lost these files, will upload if found.
-
 
 X_COLOR = MAROON_D
 Y_COLOR = GREEN_D
 T_COLOR = TEAL_E
 CURVE_COLOR = GOLD_E
 SCALAR_FIELD_COLOR = PINK
-
-
-def get_y_line_to_point(x_axis, point, **kwargs):
-    point_on_axis = x_axis.n2p(x_axis.p2n(point))
-    return Line(point_on_axis, point, **kwargs)
-
-
-def get_x_line_to_point(y_axis, point, **kwargs):
-    point_on_axis = y_axis.n2p(y_axis.p2n(point))
-    return Line(point_on_axis, point, **kwargs)
-
-
-def get_sample_input_spheres(x_range, y_range, axes, **sphere_kwargs):
-    spheres = SGroup()
-    for x in np.arange(*x_range):
-        for y in np.arange(*y_range):
-            sphere = Sphere(**sphere_kwargs).move_to(c2p(axes, (x, y, 0)))
-            sphere.x = x
-            sphere.y = y
-            spheres.add(sphere)
-    return spheres
 
 
 class ScalarLineIntegralScene(ThreeDScene):
@@ -216,11 +187,11 @@ class ScalarLineIntegralScene(ThreeDScene):
 
         return ParametricSurface(uv_func, **kwargs)
 
-    def flatten_area(self, aligned_edge):
-        return flatten_area(aligned_edge, self.area, self.axes[0])
+    def get_flattened_area(self, aligned_edge):
+        return get_flattened_area(aligned_edge, self.area, self.axes[0])
 
-    def flatten_curve(self, aligned_edge):
-        return flatten_curve(aligned_edge, self.curve)
+    def get_flattened_curve(self, aligned_edge):
+        return get_flattened_curve(aligned_edge, self.curve)
 
     def get_samples_on_t_axis(
         self, n_samples, t_min=None, t_max=None, t_axis=None, **kwargs
@@ -574,8 +545,8 @@ class ScalarFieldAndTheGoal(ScalarLineIntegralScene):
         self.area.save_state()
         self.curve.save_state()
 
-        flat_area = self.flatten_area(5 * LEFT)
-        flat_curve = self.flatten_curve(5 * LEFT)
+        flat_area = self.get_flattened_area(5 * LEFT)
+        flat_curve = self.get_flattened_curve(5 * LEFT)
 
         self.play(
             Transform(self.area, flat_area),

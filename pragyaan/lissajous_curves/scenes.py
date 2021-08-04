@@ -1,79 +1,15 @@
-from manim import *
 import numpy as np
+from functions import *
+from manim import *
+from mobjects import *
 
 COLORS = (GOLD, MAROON, PURPLE, GREEN)
 MIN_SPEED = 1
 MAX_SPEED = 3
 
 
-def color_map(speed, min_value, max_value, *colors):
-    alpha = (speed - min_value) / (max_value - min_value)
-    if len(colors) == 0:
-        raise ValueError("Atleast 1 color needed, passed 0")
-    if len(colors) == 1:
-        colors = list(colors) * 2
-    rgba_s = np.array(list(map(color_to_rgba, colors)))
-    interpolated_color = rgba_to_color(bezier(rgba_s)(alpha))
-    return interpolated_color
-
-
 def speed_to_color_map(speed):
     return color_map(speed, MIN_SPEED, MAX_SPEED, *COLORS)
-
-
-def get_circles(
-    radius, n_circles, speeds, buff, arrange_direction=RIGHT, **circle_kwargs
-):
-    circle_kwargs["radius"] = radius
-    circles = VGroup()
-    for i in range(n_circles):
-        circles.add(LissajousCircle(speed=speeds[i], **circle_kwargs))
-    return circles.arrange(arrange_direction, buff)
-
-
-def get_intersection_point(row_circ, column_circ):
-    return row_circ.dot.get_x() * RIGHT + column_circ.dot.get_y() * UP
-
-
-class LissajousCircle(Circle):
-    def __init__(
-        self,
-        radius=1,
-        speed=0.5,
-        point_type=SmallDot,
-        point_kwargs={},
-        include_radius_line=True,
-        radius_line_kwargs={},
-        start_angle=0,
-        **circle_kwargs
-    ):
-        circle_kwargs["radius"] = radius
-        super().__init__(**circle_kwargs)
-
-        self.speed = speed
-        self.theta = start_angle
-        self.include_radius_line = include_radius_line
-        point = self.point_from_proportion(self.theta / TAU)
-        self.dot = point_type(point=point, **point_kwargs)
-        if include_radius_line:
-            radius_line = Line(self.get_center(), point, **radius_line_kwargs)
-            self.radius_line = radius_line
-            self.add(radius_line)
-        self.add(self.dot)
-
-    def update_point(self, dt, speed=None):
-        speed = speed or self.speed
-        self.theta += speed * dt
-        if self.theta > TAU:
-            self.theta -= TAU
-            self.cycle_incremented = (
-                True  # not a good name for what this is meant for, change.
-            )
-        else:
-            self.cycle_incremented = False
-        self.dot.move_to(self.point_from_proportion(self.theta / TAU))
-        if self.include_radius_line:
-            self.radius_line.set_angle(self.theta)
 
 
 class LissajousTableScene(Scene):
@@ -198,7 +134,7 @@ class LissajousTableScene(Scene):
                 path.set_color(
                     interpolate_color(row_circ.get_color(), col_circ.get_color(), 0.5)
                 )
-                dot = SmallDot(point=point)
+                dot = Dot(point=point)
                 path.add(dot)
                 path.dot = dot
                 path.row_circle = row_circ
@@ -261,12 +197,10 @@ class DrawLissajousFigures(LissajousTableScene):
         self.play(
             AnimationGroup(
                 LaggedStart(
-                    *[FadeInFrom(c, 0.25 * LEFT) for c in self.row_circles],
-                    lag_ratio=0.25
+                    *[FadeIn(c, 0.25 * LEFT) for c in self.row_circles], lag_ratio=0.25
                 ),
                 LaggedStart(
-                    *[FadeInFrom(c, 0.25 * UP) for c in self.column_circles],
-                    lag_ratio=0.25
+                    *[FadeIn(c, 0.25 * UP) for c in self.column_circles], lag_ratio=0.25
                 ),
                 lag_ratio=1,
                 run_time=4,
@@ -275,8 +209,8 @@ class DrawLissajousFigures(LissajousTableScene):
         self.wait(2)
         self.play(
             AnimationGroup(
-                ShowCreation(VGroup(hor_lines, vert_lines), lag_ratio=1),
-                ShowCreation(self.paths, lag_ratio=0.25),
+                Create(VGroup(hor_lines, vert_lines), lag_ratio=1),
+                Create(self.paths, lag_ratio=0.25),
                 lag_ratio=1,
                 run_time=4,
             )

@@ -2,9 +2,10 @@
 TODO: Figure out why this doesn't work when the unit_size of axes is altered
 """
 
-from manimlib import *
-from math import radians as rad, degrees as deg
+from math import degrees as deg
+from math import radians as rad
 
+from manimlib import *
 
 plane_config = dict(
     # replace with x_min = -15, x_max = 15 if using master branch

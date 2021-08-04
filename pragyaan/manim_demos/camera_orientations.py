@@ -1,6 +1,6 @@
-from manimlib import *
 from math import degrees
 
+from manimlib import *
 
 plane = NumberPlane(
     x_range=(-10, 10),

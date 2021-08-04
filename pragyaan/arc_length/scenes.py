@@ -1,9 +1,8 @@
+from functions import *
 from manimlib import *
-from numpy import sin, cos, arange, array
-
 # lost these, will upload if found
-from custom_objects.manimgl import Particle
-from custom_functions.manimgl import get_velocity, get_arc_length
+from mobjects import Particle
+from numpy import arange, array, cos, sin
 
 x_col, y_col = MAROON_D, GREEN_D
 curve_col, t_col = YELLOW_D, BLUE_D
@@ -55,27 +54,8 @@ default_plane_config = dict(
 background_rect_style = dict(color="#111111", opacity=0.75, buff=0.1)
 
 
-def rotated_sin(t):
-    vect = complex(t, 1.5 * sin(t))
-    rotated_vect = complex(cos(PI / 4), sin(PI / 4)) * vect
-    return array([rotated_vect.real + 1, rotated_vect.imag + 1])
-
-
-def rotated_cos(t):
-    vect = complex(t, 1.5 * cos(t))
-    rotated_vect = complex(cos(PI / 8), sin(PI / 8)) * vect
-    return array([rotated_vect.real + 1, rotated_vect.imag + 1])
-
-
 def cycloid(t, rad=1):
     return rad * array([t - sin(t), 1 - cos(t)])
-
-
-def get_brace_direction(line):
-    vect = line.get_vector()[:2]
-    theta = line.get_angle()
-    direction = complex(cos(theta), sin(theta)) * complex(*vect)
-    return array([direction.real, direction.imag, 0])
 
 
 class ArcLengthScene(Scene):

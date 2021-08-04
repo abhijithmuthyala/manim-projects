@@ -1,7 +1,10 @@
-from manim import *
-from manim.opengl import *
+import numpy as np
+from manim.constants import TAU
+from manim.mobject.geometry import Line, Triangle
+from manim.mobject.mobject import Mobject
+from manim.mobject.types.vectorized_mobject import VMobject
 
-from custom_functions.manim import *
+from utils import project_along_line
 
 
 class Blob(VMobject):
@@ -38,7 +41,7 @@ class EquilateralTriangle(Triangle):
 
     @property
     def circumradius(self):
-        return get_norm(self.get_vertices()[0] - self.circumcenter)
+        return np.linalg.norm(self.get_vertices()[0] - self.circumcenter)
 
     @property
     def inradius(self):
@@ -66,16 +69,3 @@ class EquilateralTriangle(Triangle):
         )
         line.edge_index = edge_index
         return line
-
-
-class UnitSizeAxes(Axes):
-    def __init__(self, x_range=None, y_range=None, snap_to_world_origin=True, **kwargs):
-        if "axis_config" in kwargs.keys():
-            kwargs["axis_config"].update(unit_size=1)
-
-        super().__init__(
-            x_range=x_range, y_range=y_range, x_length=None, y_length=None, **kwargs
-        )
-
-        if snap_to_world_origin:
-            self.shift(-self.c2p(0, 0))
