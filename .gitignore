@@ -132,7 +132,9 @@ dmypy.json
 /.vscode/
 
 # test modules
-*test.*
+test.*
+
+custom_config.yml
 
 # media
 media/
