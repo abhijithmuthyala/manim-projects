@@ -87,6 +87,9 @@ class OpenGLMagneticCompass(OpenGLGroup):
         pointer_kwargs: dict = None,
         pole_labels_width: float = 0.25,
         pole_label_to_annulus_buff: float = 0.15,
+        include_shield: bool = True,  # shield?
+        shield_depth: float = 1,
+        shield_kwargs: dict = None,
         center: Sequence[float] = ORIGIN,
         **kwargs,
     ):
@@ -110,7 +113,19 @@ class OpenGLMagneticCompass(OpenGLGroup):
         super().__init__(
             self.annulus, self.pointer, self.center_hinge, *self.pole_labels, **kwargs
         )
-        self.move_to(center)
+
+        if include_shield:
+            self.shield = OpenGLSphere(
+                radius=self.annulus.outer_radius,
+                u_range=(PI, TAU),
+                v_range=(PI / 2, 3 * PI / 2),
+                **(shield_kwargs if shield_kwargs is not None else {}),
+            )
+            self.shield.set_depth(
+                shield_depth, stretch=True, about_point=self.center_hinge.get_center()
+            )
+            self.add(self.shield)
+        self.shift(np.array(center) - self.center_hinge.get_center())
 
     def get_pole_labels(self):
         self.north_pole_label, self.south_pole_label = map(OpenGLText, ["N", "S"])
@@ -119,7 +134,8 @@ class OpenGLMagneticCompass(OpenGLGroup):
             [PI / 2, -PI / 2],
             [DOWN, UP],
         ):
-            pole.set_width(self.pole_labels_width)
+            pole.set_width(self.pole_labels_width, stretch=True)
+            pole.set_height(self.pole_labels_width, stretch=True)
             pole.next_to(
                 self.annulus.point_on_inner_circle(angle),
                 direction,
