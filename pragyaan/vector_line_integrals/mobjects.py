@@ -188,6 +188,7 @@ class OpenGLCube(OpenGLVGroup):
 
 
 class OpenGLCuboid(OpenGLCube):
-    def __init__(self, base_length=2, depth=1, **kwargs):
-        super().__init__(side_length=base_length, **kwargs)
-        self.set_depth(depth, stretch=True)
+    def __init__(self, x_length=3, y_length=3, z_length=1, **kwargs):
+        super().__init__(side_length=1, **kwargs)
+        for dim, length in enumerate([x_length, y_length, z_length]):
+            self.stretch(factor=length, dim=dim)
