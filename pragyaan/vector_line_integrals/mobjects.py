@@ -2,13 +2,14 @@ from typing import Iterable, Sequence
 
 import numpy as np
 from colour import Color
-from manim.constants import DOWN, ORIGIN, PI, TAU, UP
-from manim.mobject.opengl_geometry import OpenGLArrow, OpenGLCircle
+from manim.constants import DOWN, IN, LEFT, ORIGIN, OUT, PI, RIGHT, TAU, UP
+from manim.mobject.opengl_geometry import OpenGLArrow, OpenGLCircle, OpenGLSquare
 from manim.mobject.opengl_mobject import OpenGLGroup
 from manim.mobject.opengl_three_dimensions import OpenGLSphere
 from manim.mobject.svg.opengl_text_mobject import OpenGLText
-from manim.utils.color import DARK_GREY, GREY
-from manim.utils.space_ops import normalize, rotation_matrix
+from manim.mobject.types.opengl_vectorized_mobject import OpenGLVGroup
+from manim.utils.color import BLUE, DARK_GREY, GREY
+from manim.utils.space_ops import normalize, rotation_matrix, z_to_vector
 
 
 # This only exists because OpenGLAnnulus doesn't do the job :(
@@ -158,3 +159,35 @@ class OpenGLMagneticCompass(OpenGLGroup):
             )
         )
         return pointer
+
+
+class OpenGLCube(OpenGLVGroup):
+    def __init__(
+        self,
+        side_length=1,
+        fill_color=BLUE,
+        fill_opacity=0.75,
+        stroke_width=0.0,
+        **kwargs,
+    ):
+        self.side_length = side_length
+        super().__init__(
+            fill_color=fill_color,
+            fill_opacity=fill_opacity,
+            stroke_width=stroke_width,
+            **kwargs,
+        )
+
+    def init_points(self):
+        for vect in [RIGHT, UP, LEFT, DOWN, OUT, IN]:
+            face = OpenGLSquare(side_length=self.side_length)
+            face.flip()
+            face.shift(self.side_length * OUT / 2.0)
+            face.apply_matrix(z_to_vector(vect))
+            self.add(face)
+
+
+class OpenGLCuboid(OpenGLCube):
+    def __init__(self, base_length=2, depth=1, **kwargs):
+        super().__init__(side_length=base_length, **kwargs)
+        self.set_depth(depth, stretch=True)
