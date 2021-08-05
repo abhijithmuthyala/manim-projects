@@ -2,13 +2,13 @@ from typing import Iterable, Sequence
 
 import numpy as np
 from colour import Color
-from manim.constants import DOWN, ORIGIN, PI, RIGHT, TAU, UP
+from manim.constants import DOWN, ORIGIN, PI, TAU, UP
 from manim.mobject.opengl_geometry import OpenGLArrow, OpenGLCircle
 from manim.mobject.opengl_mobject import OpenGLGroup
 from manim.mobject.opengl_three_dimensions import OpenGLSphere
 from manim.mobject.svg.opengl_text_mobject import OpenGLText
 from manim.utils.color import DARK_GREY, GREY
-from manim.utils.space_ops import rotation_matrix
+from manim.utils.space_ops import normalize, rotation_matrix
 
 
 # This only exists because OpenGLAnnulus doesn't do the job :(
@@ -46,17 +46,34 @@ class OpenGLCompassAnnulus(OpenGLCircle):
         return self.initial_outer_radius * (self.get_radius() / self.initial_radius)
 
     def point_on_inner_circle(self, theta: float):
-        return self.get_center() + self.inner_radius * (
-            np.matmul(rotation_matrix(theta, self.get_unit_normal()), RIGHT)
+        center = self.get_center()
+        return center + self.inner_radius * (
+            np.matmul(
+                rotation_matrix(theta, self.get_unit_normal()),
+                normalize(self.get_points()[0] - center),
+            )
         )
 
     def point_on_outer_circle(self, theta: float):
-        return self.get_center() + self.outer_radius * (
-            np.matmul(rotation_matrix(theta, self.get_unit_normal()), RIGHT)
+        center = self.get_center()
+        return center + self.outer_radius * (
+            np.matmul(
+                rotation_matrix(theta, self.get_unit_normal()),
+                normalize(self.get_points()[0] - center),
+            )
         )
 
-    def point_at_angle(self, angle: float):
-        return super().point_from_proportion(angle % TAU)
+    # Alternate to the above two methods. It's fun to explore different ways!
+    def point_at_angle_on_circle(self, angle: float, circle: str = "inner"):
+        center = self.get_center()
+        radius_vector = super().point_from_proportion(angle % TAU) - center
+        if circle == "inner":
+            circle_radius = self.inner_radius
+        elif circle == "center":
+            circle_radius = self.get_radius()
+        else:
+            circle_radius = self.outer_radius
+        return (circle_radius / self.get_radius()) * radius_vector
 
 
 class OpenGLMagneticCompass(OpenGLGroup):
