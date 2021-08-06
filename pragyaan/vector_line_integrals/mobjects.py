@@ -76,6 +76,11 @@ class OpenGLCompassAnnulus(OpenGLCircle):
             circle_radius = self.outer_radius
         return (circle_radius / self.get_radius()) * radius_vector
 
+    def scale(self, scale_factor, **kwargs):
+        super().scale(scale_factor, **kwargs)
+        self.set_stroke(width=(self.outer_radius - self.inner_radius) * 100)
+        return self
+
 
 class OpenGLMagneticCompass(OpenGLGroup):
     def __init__(
@@ -159,6 +164,13 @@ class OpenGLMagneticCompass(OpenGLGroup):
             )
         )
         return pointer
+
+    def scale(self, scale_factor, **kwargs):
+        super().scale(scale_factor, **kwargs)
+        self.annulus.set_stroke(
+            width=(self.annulus.outer_radius - self.annulus.inner_radius) * 100
+        )
+        return self
 
 
 class OpenGLCube(OpenGLVGroup):
