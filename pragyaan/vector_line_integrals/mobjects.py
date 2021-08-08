@@ -166,6 +166,8 @@ class OpenGLMagneticCompass(OpenGLGroup):
         return pointer
 
     def scale(self, scale_factor, **kwargs):
+        if not "about_point" in kwargs:
+            kwargs["about_point"] = self.center_hinge.get_center()
         super().scale(scale_factor, **kwargs)
         self.annulus.set_stroke(
             width=(self.annulus.outer_radius - self.annulus.inner_radius) * 100
