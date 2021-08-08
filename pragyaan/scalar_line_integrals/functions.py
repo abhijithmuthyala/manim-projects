@@ -1,17 +1,13 @@
-from typing import Iterable, Sequence, Union
+from typing import Callable, Iterable, Sequence
 
 import numpy as np
-from manim.constants import RIGHT
-from manim.mobject.coordinate_systems import Axes
-from manim.mobject.number_line import NumberLine
-from manimlib.constants import DOWN, PI
+from manimlib.constants import DOWN, PI, RIGHT
 from manimlib.mobject.functions import ParametricCurve
 from manimlib.mobject.geometry import Line, Polygon, Rectangle
 from manimlib.mobject.mobject import Group
+from manimlib.mobject.number_line import NumberLine
 from manimlib.mobject.three_dimensions import Sphere
 from manimlib.mobject.types.surface import SGroup
-from manimlib.mobject.types.vectorized_mobject import VGroup
-from numpy.lib.function_base import iterable
 
 
 def c2p(axes: Iterable[NumberLine], vector: Sequence[float]):
@@ -26,12 +22,15 @@ def c2p(axes: Iterable[NumberLine], vector: Sequence[float]):
         unit_sizes.append(1)
 
     transformed_vector = np.matmul(np.diag(unit_sizes), vector)
-    transformed_vector += axes.get_origin()
+    transformed_vector += axes.axes[0].n2p(0)
     return transformed_vector
 
 
 def get_parametric_curve(
-    axes: Iterable[NumberLine], t_func: function, t_range: Iterable[float], **kwargs
+    axes: Iterable[NumberLine],
+    t_func: Callable[[float], float],
+    t_range: Iterable[float],
+    **kwargs
 ):
     return ParametricCurve(lambda t: c2p(axes, t_func(t)), t_range, **kwargs)
 

@@ -1,10 +1,11 @@
 from math import radians as rad
 
-from functions import *
 from manimlib import *
 from manimlib.once_useful_constructs.graph_scene import GraphScene
 
 from pragyaan.manim_demos.surface_demo import plane_config, z_axis_config
+
+from .functions import *
 
 X_COLOR = MAROON_D
 Y_COLOR = GREEN_D
@@ -45,13 +46,15 @@ class ScalarLineIntegralScene(ThreeDScene):
     ):  # bcz the ThreeDAxes's z_axis tip looks weird look for whatever reason
         plane = NumberPlane(**self.plane_config).shift(self.origin)
         z_axis = NumberLine(**self.z_axis_config).shift(plane.c2p(0, 0))
-        z_axis.rotate_about_zero(axis=z_axis.get_unit_vector())
-        z_axis.rotate_about_zero(axis=DOWN)
+        z_axis.rotate(PI / 2, axis=z_axis.get_unit_vector(), about_point=z_axis.n2p(0))
+        z_axis.rotate(
+            PI / 2, axis=-plane.y_axis.get_unit_vector(), about_point=z_axis.n2p(0)
+        )
         if hasattr(z_axis, "numbers"):
             [num.rotate(PI / 2, UP) for num in z_axis.numbers]
         self.plane = plane
         self.z_axis = z_axis
-        self.axes = VGroup(*self.plane.axes, self.z_axis)
+        self.axes = self.axes.axes = VGroup(*self.plane.axes, self.z_axis)
 
     def get_area(self, n_rects=None, **style):
         n_rects = n_rects or self.n_rects_for_area
@@ -393,8 +396,8 @@ class OpeningSceneLineIntegrals(ScalarLineIntegralScene):
         f_xy.to_corner(UR, buff=0.1)
         f_xy.fix_in_frame()
 
-        self.plane.x_axis.set_stroke(X_COLOR, 3, family=False)
-        self.plane.y_axis.set_stroke(Y_COLOR, 3, family=False)
+        self.plane.x_axis.set_stroke(X_COLOR, 3, recurse=False)
+        self.plane.y_axis.set_stroke(Y_COLOR, 3, recurse=False)
 
         self.add(self.plane)
         self.wait()
@@ -407,7 +410,7 @@ class OpeningSceneLineIntegrals(ScalarLineIntegralScene):
         self.wait()
         self.play(
             Write(f_xy, run_time=2),
-            ApplyMethod(frame.set_rotation, rad(45), rad(60), run_time=8),
+            ApplyMethod(frame.set_euler_angles, rad(45), rad(60), run_time=8),
             ShowCreation(self.curve, run_time=8),
             ShowCreation(self.area.set_opacity(0.35), run_time=8),
         )
@@ -416,19 +419,19 @@ class OpeningSceneLineIntegrals(ScalarLineIntegralScene):
 
         # three_d_sample_curve = get_parametric_curve(
         #     self.axes,
-        #     lambda t: 2*np.array([np.cos(t), np.sin(t), 0.1*t]),
-        #     t_range=[-2*TAU, 2*TAU, 0.01],
-        #     color=GOLD_E
+        #     lambda t: 2 * np.array([np.cos(t), np.sin(t), 0.1 * t]),
+        #     t_range=[-2 * TAU, 2 * TAU, 0.01],
+        #     color=GOLD_E,
         # )
 
-        # frame.add_updater(lambda f, dt: f.increment_theta(dt*0.02))
+        # frame.add_updater(lambda f, dt: f.increment_theta(dt * 0.02))
         # self.add(frame)
 
         # self.play(
         #     AnimationGroup(
         #         FadeIn(self.axes, lag_ratio=0, run_time=0.5),
         #         ShowCreation(three_d_sample_curve, run_time=2),
-        #         lag_ratio=1
+        #         lag_ratio=1,
         #     )
         # )
         # self.wait(2)
@@ -440,7 +443,7 @@ class OpeningSceneLineIntegrals(ScalarLineIntegralScene):
         integrals.arrange(buff=0.5).set_width(FRAME_WIDTH - 1).to_edge(DOWN, buff=2)
 
         frame.clear_updaters()
-        frame.set_rotation(0, 0)
+        frame.set_euler_angles(0, 0)
         frame.save_state()
         frame.move_to(integrals[0]).match_width(integrals[0]).match_height(integrals[0])
 
@@ -483,8 +486,8 @@ class ScalarFieldAndTheGoal(ScalarLineIntegralScene):
         f_xy = TexText("f(x,y)", "=", "cos(x)sin(y)+2", tex_to_color_map=color_map)
         f_xy.set_width(4).add_background_rectangle().to_corner(UR)
 
-        self.plane.x_axis.set_stroke(X_COLOR, 3, family=False)
-        self.plane.y_axis.set_stroke(Y_COLOR, 3, family=False)
+        self.plane.x_axis.set_stroke(X_COLOR, 3, recurse=False)
+        self.plane.y_axis.set_stroke(Y_COLOR, 3, recurse=False)
 
         self.add(self.plane, title, f_xy)
         self.wait()
@@ -506,7 +509,7 @@ class ScalarFieldAndTheGoal(ScalarLineIntegralScene):
         self.raise_sample_spheres_to_output(
             sample_spheres,
             added_anims=[
-                ApplyMethod(frame.set_rotation, rad(-20), rad(60)),
+                ApplyMethod(frame.set_euler_angles, rad(-20), rad(60)),
                 ApplyMethod(self.plane.set_opacity, 0.25),
             ],
             run_time=5,
@@ -518,7 +521,7 @@ class ScalarFieldAndTheGoal(ScalarLineIntegralScene):
         self.play(FadeOut(sample_spheres), Restore(frame), run_time=2)
 
         self.play(
-            ApplyMethod(frame.set_rotation, rad(45), rad(60)),
+            ApplyMethod(frame.set_euler_angles, rad(45), rad(60)),
             ShowCreation(self.curve),
             ShowCreation(self.area.set_opacity(0.25)),
             run_time=10,
@@ -532,7 +535,7 @@ class ScalarFieldAndTheGoal(ScalarLineIntegralScene):
 
         frame.clear_updaters()
         self.play(
-            frame.set_rotation,
+            frame.set_euler_angles,
             rad(0),
             rad(70),
             self.area.set_opacity,
@@ -683,8 +686,8 @@ class ApproximatingCurvedArea(ScalarLineIntegralScene):
         [integral_gt[0][i].set_color(T_COLOR) for i in t_indices]
         self.integral_gt = integral_gt
 
-        self.plane.x_axis.set_stroke(X_COLOR, 3, family=False)
-        self.plane.y_axis.set_stroke(Y_COLOR, 3, family=False)
+        self.plane.x_axis.set_stroke(X_COLOR, 3, recurse=False)
+        self.plane.y_axis.set_stroke(Y_COLOR, 3, recurse=False)
         self.t_axis.add(
             TexText("t", color=T_COLOR).next_to(self.t_axis.pfp(1), buff=0.1)
         )
@@ -713,7 +716,7 @@ class ApproximatingCurvedArea(ScalarLineIntegralScene):
         self.raise_riemann_rectangles(
             self.area,
             [
-                ApplyMethod(frame.set_rotation, rad(0), rad(70), run_time=3),
+                ApplyMethod(frame.set_euler_angles, rad(0), rad(70), run_time=3),
                 ApplyMethod(self.plane.set_opacity, 0.2, run_time=3),
             ],
             run_time=3,
@@ -831,7 +834,7 @@ class ApproximatingCurvedArea(ScalarLineIntegralScene):
         delta_s.fix_in_frame()
         self.area.set_opacity(0.1)
         frame.generate_target()
-        frame.target.set_rotation(0, rad(70))
+        frame.target.set_euler_angles(0, rad(70))
         frame.target.shift(2 * UP + 2.5 * RIGHT)
         self.raise_riemann_rectangles(
             self.area,
@@ -1178,7 +1181,7 @@ class TheYurekaScene(ApproximatingCurvedArea):
 
     def construct(self):
         frame = self.camera.frame
-        frame.set_rotation(rad(0), rad(80))
+        frame.set_euler_angles(rad(0), rad(80))
         frame.shift(2.5 * UP + 3.5 * RIGHT)
         self.plane.save_state()
         self.plane.set_opacity(0.1)
