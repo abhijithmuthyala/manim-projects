@@ -191,7 +191,7 @@ class ScalarLineIntegralScene(ThreeDScene):
         return ParametricSurface(uv_func, **kwargs)
 
     def get_flattened_area(self, aligned_edge):
-        return get_flattened_area(aligned_edge, self.area, self.axes[0])
+        return get_flattened_area(self.area, aligned_edge)
 
     def get_flattened_curve(self, aligned_edge):
         return get_flattened_curve(aligned_edge, self.curve)

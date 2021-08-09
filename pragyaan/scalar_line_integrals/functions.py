@@ -1,13 +1,14 @@
 from typing import Callable, Iterable, Sequence
 
 import numpy as np
-from manimlib.constants import DOWN, PI, RIGHT
+from manimlib.constants import DOWN, IN, LEFT, OUT, PI, RIGHT
 from manimlib.mobject.functions import ParametricCurve
 from manimlib.mobject.geometry import Line, Polygon, Rectangle
 from manimlib.mobject.mobject import Group
 from manimlib.mobject.number_line import NumberLine
 from manimlib.mobject.three_dimensions import Sphere
 from manimlib.mobject.types.surface import SGroup
+from manimlib.mobject.types.vectorized_mobject import VGroup
 
 
 def c2p(axes: Iterable[NumberLine], vector: Sequence[float]):
@@ -49,16 +50,17 @@ def get_flattened_area(
     riemann_sum: Iterable[Polygon],
     dl_edge: np.ndarray,
 ):
-    flat_area = Group()
+    flat_area = VGroup()
 
     for rect in riemann_sum:
-        flat_rect = Rectangle().match_style(rect)
-        flat_rect.match_width(rect).match_height(rect)
+        width, height = map(np.linalg.norm, np.diff(rect.get_vertices(), axis=0)[:2])
+        flat_rect = Rectangle(width=width, height=height)
+        flat_rect.match_style(rect)
         flat_rect.rotate(PI / 2, axis=RIGHT)
         flat_area.add(flat_rect)
 
-    flat_area.arrange(buff=0, aligned_edge=DOWN).next_to(
-        dl_edge, aligned_edge=DOWN, buff=0
+    flat_area.arrange(buff=0, aligned_edge=IN).next_to(
+        dl_edge, aligned_edge=IN + LEFT, buff=0
     )
     return flat_area
 
