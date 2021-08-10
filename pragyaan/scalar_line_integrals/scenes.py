@@ -3,7 +3,7 @@ from math import radians as rad
 from manimlib import *
 from manimlib.once_useful_constructs.graph_scene import GraphScene
 
-from pragyaan.manim_demos.surface_demo import plane_config, z_axis_config
+from ..manim_demos.surface_demo import plane_config, z_axis_config
 
 from .functions import *
 
@@ -194,7 +194,7 @@ class ScalarLineIntegralScene(ThreeDScene):
         return get_flattened_area(self.area, aligned_edge)
 
     def get_flattened_curve(self, aligned_edge):
-        return get_flattened_curve(aligned_edge, self.curve)
+        return get_flattened_curve(self.curve, aligned_edge)
 
     def get_samples_on_t_axis(
         self, n_samples, t_min=None, t_max=None, t_axis=None, **kwargs
