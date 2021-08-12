@@ -174,6 +174,13 @@ class OpenGLMagneticCompass(OpenGLGroup):
         )
         return self
 
+    def point_at_angle_animation(self, angle: float, **kwargs):
+        kwargs["path_arc"] = angle - self.pointer.get_angle()
+        anim = self.pointer.animate(**kwargs).set_angle(
+            angle, about_point=self.center_hinge.get_center()
+        )
+        return anim
+
 
 class OpenGLCube(OpenGLVGroup):
     def __init__(
