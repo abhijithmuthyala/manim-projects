@@ -1,4 +1,4 @@
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 import numpy as np
 from colour import Color
@@ -9,7 +9,12 @@ from manim.mobject.opengl_three_dimensions import OpenGLSphere
 from manim.mobject.svg.opengl_text_mobject import OpenGLText
 from manim.mobject.types.opengl_vectorized_mobject import OpenGLVGroup
 from manim.utils.color import BLUE, DARK_GREY, GREY
-from manim.utils.space_ops import normalize, rotation_matrix, z_to_vector
+from manim.utils.space_ops import (
+    angle_of_vector,
+    normalize,
+    rotation_matrix,
+    z_to_vector,
+)
 
 
 # This only exists because OpenGLAnnulus doesn't do the job :(
@@ -174,12 +179,38 @@ class OpenGLMagneticCompass(OpenGLGroup):
         )
         return self
 
-    def point_at_angle_animation(self, angle: float, **kwargs):
+    def get_pointer_angle(
+        self, point: np.ndarray, field_func: Callable[[np.ndarray], np.ndarray]
+    ):
+        return angle_of_vector(field_func(point))
+
+    def point_at_angle_animation(
+        self,
+        point: np.ndarray,
+        field_func: Callable[[np.ndarray], np.ndarray],
+        **kwargs,
+    ):
+        angle = self.get_pointer_angle(point, field_func)
         kwargs["path_arc"] = angle - self.pointer.get_angle()
         anim = self.pointer.animate(**kwargs).set_angle(
             angle, about_point=self.center_hinge.get_center()
         )
         return anim
+
+    def adjust_z(self):
+        self.shift(self.center_hinge.get_center() - self.get_center())
+        return self
+
+    def pointer_updater_func(self, field_func: Callable[[np.ndarray], np.ndarray]):
+        def func(compass, dt):
+            point = compass.center_hinge.get_center()
+            compass.pointer.set_angle(
+                self.get_pointer_angle(point, field_func),
+                about_point=point,
+            )
+            return compass
+
+        return func
 
 
 class OpenGLCube(OpenGLVGroup):
