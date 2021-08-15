@@ -12,7 +12,7 @@ The typical way this concept is introduced is via the work done by a force-field
 
 ## WhatAreVectorFields
 
-I believe most of you, atleast those from India, might have done this experiment in your physics lab where you take a **bar magnet**, a **compass** and draw a bunch of arrows around the magnet depending on the direction in which the compass points to at a certain point. You might have not realized it back then, but you've essentially drawn a vector field, loosely representing the magnetic force exerted by the bar magnet around it. You've basically assigned vectors to points in space.
+I believe most of you, atleast those from India, might have done this experiment in your physics lab where you take a **bar magnet**, a **compass** and start drawing a bunch of arrows around the magnet depending on the direction in which the compass points to at a certain point. You might have not realized it back then, but you've essentially drawn a vector field - one that loosely represents the magnetic force exerted by the bar magnet around it. You've basically assigned vectors to points in space.
 
 ```
 BarMagnet

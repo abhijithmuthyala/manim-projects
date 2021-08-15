@@ -203,6 +203,7 @@ class OpenGLMagneticCompass(OpenGLGroup):
 
     def pointer_updater_func(self, field_func: Callable[[np.ndarray], np.ndarray]):
         def func(compass, dt):
+            # adding the compass shield messes this up, the point doesn't update 🤔
             point = compass.center_hinge.get_center()
             compass.pointer.set_angle(
                 self.get_pointer_angle(point, field_func),

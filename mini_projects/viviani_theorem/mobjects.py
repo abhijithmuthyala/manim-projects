@@ -3,7 +3,6 @@ from manim.constants import TAU
 from manim.mobject.geometry import Line, Triangle
 from manim.mobject.mobject import Mobject
 from manim.mobject.types.vectorized_mobject import VMobject
-
 from utils import project_along_line
 
 

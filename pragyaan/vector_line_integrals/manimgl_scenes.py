@@ -8,6 +8,8 @@ from ..scalar_line_integrals.scenes import (
     OpeningSceneLineIntegrals,
 )
 
+DARK_GREY = "#444444"
+
 FRAME_RECT = ScreenRectangle(
     height=8,
     stroke_width=0,
@@ -36,7 +38,17 @@ class IntroPrevVideo(OpeningSceneLineIntegrals):
         for axis, col in zip(self.plane.axes, [X_COLOR, Y_COLOR]):
             axis.set_stroke(col, width=4)
 
-        self.add(self.plane, self.curve)
+        plane_bg = Surface(
+            uv_func=lambda u, v: [u, v, 0],
+            u_range=[-15, 15],
+            v_range=[-15, 15],
+            color=DARK_GREY,
+            opacity=0.75,
+            gloss=0,
+            shadow=1,
+        )
+
+        self.add(plane_bg, self.plane, self.curve)
 
         self.wait(0.25)
         self.play(
