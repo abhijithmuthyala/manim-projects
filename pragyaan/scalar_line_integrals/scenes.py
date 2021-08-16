@@ -4,7 +4,6 @@ from manimlib import *
 from manimlib.once_useful_constructs.graph_scene import GraphScene
 
 from ..manim_demos.surface_demo import plane_config, z_axis_config
-
 from .functions import *
 
 X_COLOR = MAROON_D
@@ -180,7 +179,7 @@ class ScalarLineIntegralScene(ThreeDScene):
         )
         if added_anims is None:
             added_anims = []
-        self.play(anims, *added_anims, run_time=kwargs.get("run_time"))
+        self.play(anims, *added_anims, run_time=kwargs.get("run_time", 1))
 
     def get_parametric_surface(self, scalar_field=None, **kwargs):
         scalar_field = scalar_field or self.scalar_field

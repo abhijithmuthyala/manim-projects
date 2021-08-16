@@ -1,30 +1,29 @@
+from functions import *
 from manim import *
 from manim.opengl import *
 from manim_fonts import RegisterFont
-from mini_projects.viviani_theorem.mobjects import Blob
-
-from functions import *
 from manim_mobjects import *
+
+from mini_projects.viviani_theorem.mobjects import Blob
 
 NORTH_POLE_COLOR = MAROON_E
 SOUTH_POLE_COLOR = BLUE_E
 POLE_COLORS = [NORTH_POLE_COLOR, SOUTH_POLE_COLOR]
 
 
+FIELD_BACKGROUND = OpenGLSurface(
+    lambda u, v: [u, v, 0],
+    [-10, 10],
+    [-6, 6],
+    color=DARK_GRAY,
+    opacity=0.75,
+    gloss=0.0,
+    shadow=1.0,
+)
+
+
 class BarmagneticFieldScene(Scene):
     def setup(self):
-        self.field_background = OpenGLSurface(
-            lambda u, v: [u, v, 0],
-            [-10, 10],
-            [-6, 6],
-            color=DARK_GRAY,
-            opacity=0.75,
-            gloss=0.0,
-            shadow=1.0,
-        )
-        self.plane = NumberPlane(
-            [-10, 10], [-6, 6], x_length=20, y_length=12, faded_line_ratio=2
-        )
         self.setup_magnet()
 
         self.compass = OpenGLMagneticCompass(
@@ -90,7 +89,7 @@ class RecollectBarMagneticField(BarmagneticFieldScene):
             .move_to(prompt)
         )
 
-        self.play(FadeIn(self.field_background))
+        self.play(FadeIn(FIELD_BACKGROUND))
         self.wait(0.75)
 
         self.play(
