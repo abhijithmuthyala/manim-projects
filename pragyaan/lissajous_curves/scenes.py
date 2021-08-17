@@ -197,10 +197,12 @@ class DrawLissajousFigures(LissajousTableScene):
         self.play(
             AnimationGroup(
                 LaggedStart(
-                    *[FadeIn(c, 0.25 * LEFT) for c in self.row_circles], lag_ratio=0.25
+                    *[FadeIn(c, shift=0.25 * LEFT) for c in self.row_circles],
+                    lag_ratio=0.25
                 ),
                 LaggedStart(
-                    *[FadeIn(c, 0.25 * UP) for c in self.column_circles], lag_ratio=0.25
+                    *[FadeIn(c, shift=0.25 * UP) for c in self.column_circles],
+                    lag_ratio=0.25
                 ),
                 lag_ratio=1,
                 run_time=4,
