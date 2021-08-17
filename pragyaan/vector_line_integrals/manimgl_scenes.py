@@ -128,6 +128,9 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.field = VectorField(
             self.field_func, self.plane, length_func=lambda l: 0.7, step_multiple=1
         )
+        self.true_field = VectorField(
+            self.field_func, self.plane, length_func=lambda l: l, step_multiple=1
+        ).set_color(WHITE)
 
         x_range = self.plane.x_range[:2]
         y_range = self.plane.y_range[:2]
@@ -262,13 +265,21 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         # back to vector field
         self.play(
             FadeOut(self.scalar_field_surface),
-            Restore(self.frame),
-            Restore(self.spheres_at_tails),
+            *map(
+                Restore,
+                [self.frame, self.spheres_at_tails, self.title, self.field_func_text],
+            ),
             run_time=2,
         )
-        self.wait(0.5)
         self.play(LaggedStartMap(Restore, self.field, run_time=2, lag_ratio=0.05))
         self.wait(2)
+
+        self.field.save_state()
+        self.play(Transform(self.field, self.true_field, lag_ratio=0.025, run_time=3))
+        self.wait(0.25)
+        self.play(Restore(self.field, run_time=3, lag_ratio=0.025))
+        self.wait(4)
+
         # self.interact()
 
     def quick_scalar_field_tour(self):
@@ -283,6 +294,7 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.frame.save_state()
         self.spheres_at_tails.save_state()
         self.field_func_text.save_state()
+        self.title.save_state()
 
         self.play(
             self.vector_shrink_animation(scale_factor=0.01, run_time=1, save_state=True)
@@ -290,11 +302,12 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.raise_sample_spheres_to_output(
             self.spheres_at_tails,
             added_anims=[
+                ApplyMethod(self.title.shift, 4 * UP, run_time=1),
+                GrowFromCenter(scalar_field_text, lag_ratio=0.025, run_time=0.5),
+                ApplyMethod(self.field_func_text.shift, 4 * UP, run_time=1),
                 ApplyMethod(self.frame.set_euler_angles, -10 * DEGREES, 70 * DEGREES),
-                ApplyMethod(self.field_func_text.shift, 4 * UP),
-                # FadeIn(scalar_field_text, shift=0.25 * DOWN),
             ],
             run_time=8,
         )
         self.play(ShowCreation(self.scalar_field_surface, run_time=2))
-        self.wait()
+        self.play(ApplyMethod(scalar_field_text.shift, 2 * UP))

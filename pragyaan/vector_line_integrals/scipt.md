@@ -19,7 +19,7 @@ BarMagnet
 Compass (SVGMobject?)
 ```
 
-That's what vector fields are - functions that take vector inputs, which we think of as the coordinates of points in space, and return aother vector as an output, which we'd attach to that point. You might recollect scalar fields which are functions that return a scalar from a vector input, which we visualize as assigning a height in the perpendicular dimension to a point in 2D. But with vector fields, we assign vectors to points in space. You might wonder why all the vectors are of equal length and in different colors. It's a common practice to let the color vaguely represent the length of vectors for sanity.
+That's what vector fields are - functions that take vector inputs, which we think of as the coordinates of points in space, and return aother vector as an output, which we'd attach to those points. You might recollect scalar fields which are functions that return a scalar from a vector input, which we visualize as assigning a height in the perpendicular dimension to a point in 2D. But with vector fields, we assign vectors to points in space. It's a common practice to let the color vaguely represent the actual length of vectors to avoid clutter.
 
 ```
 Vector3D (requires Cylinder, Cone, Line3D)
