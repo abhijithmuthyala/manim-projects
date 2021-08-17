@@ -311,3 +311,133 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         )
         self.play(ShowCreation(self.scalar_field_surface, run_time=2))
         self.play(ApplyMethod(scalar_field_text.shift, 2 * UP))
+
+
+class Prerequisites(ThreeDScene):
+    CONFIG = dict(camera_config={"anti_alias_width": 1.5, "samples": 32})
+
+    def setup(self):
+        self.frame = self.camera.frame
+
+        self.displacement_color = GOLD_E
+        self.force_color = GREEN_E
+        ground_color = "#003B73"
+
+        self.ground_surface = Surface(
+            uv_func=lambda u, v: [u, v, 0],
+            u_range=[-15, 15],
+            v_range=[-10, 10],
+            gloss=0.25,
+            shadow=0.85,
+            opacity=0.15,
+            color=ground_color,
+        )
+        # hmm, choose a smooth texture or just use the surface above?
+        self.ground = TexturedSurface(self.ground_surface, "grass", shadow=0.75)
+
+        self.base = Prism(color=ground_color, opacity=0.15, gloss=0.0, shadow=0.75)
+        self.base.match_width(self.ground_surface).match_height(self.ground_surface)
+        self.base.set_depth(1, stretch=True)
+        self.base.shift(0.5 * self.base.get_depth() * IN)
+
+        self.block = Cube(color=MAROON_E, gloss=0.25, shadow=0.15)
+        self.block.move_to([-10, 0, 0]).shift(0.5 * self.block.side_length * OUT)
+
+        self.block_trace = TracedPath(
+            self.block.get_center, stroke_color=GOLD_E, stroke_width=10
+        )
+
+        force_vect_length = 5
+        self.force_vector = Vector(force_vect_length * RIGHT, color=self.force_color)
+        self.force_vector.rotate(PI / 2, axis=RIGHT).rotate(PI / 6, axis=DOWN)
+        self.force_vector.add_updater(
+            lambda f: f.shift(self.block.get_center() - self.force_vector.get_start())
+        )
+
+        self.force_vector_tex = (
+            Tex("\overrightarrow{F}", tex_to_color_map={"F": self.force_color})
+            .scale(1.25)
+            .rotate(PI / 2, axis=RIGHT)
+        )
+        self.force_vector_tex.add_updater(
+            lambda text: text.next_to(
+                self.force_vector, direction=OUT + RIGHT, buff=0.25
+            )
+        )
+
+        self.displacement_vector_tex = (
+            Tex("\overrightarrow{S}", color=self.displacement_color)
+            .scale(1.25)
+            .rotate(PI / 2, axis=RIGHT)
+        )
+        self.displacement_vector_tex.add_updater(
+            # lambda text: text.next_to(self.block_trace, OUT, buff=0.25)
+            lambda text: text.next_to(
+                self.block_trace.get_end(), (5 * LEFT + OUT) * 1.25
+            )
+        )
+
+        self.work_text = Group(
+            Text("Work done by "),
+            Tex("\overrightarrow{F}", tex_to_color_map={"F": self.force_color}),
+        ).arrange(buff=0.1, aligned_edge=DOWN)
+        self.work_text.fix_in_frame()
+
+        self.work_formula = Tex(
+            "=",
+            "(",
+            "\overrightarrow{F}",
+            ".",
+            "\hat{S}",
+            ")",
+            "*",
+            "|" "\overrightarrow{S}",
+            "|",
+            tex_to_color_map=dict(S=self.displacement_color, F=self.force_color),
+        )
+        self.work_formula.fix_in_frame()
+
+        self.formula = (
+            Group(self.work_text, self.work_formula)
+            .arrange(buff=0.2)
+            .to_corner(UL, buff=0.25)
+        )
+
+    def construct(self):
+        self.frame.scale(1 / 0.5)
+        self.frame.set_euler_angles(phi=70 * DEGREES)
+        self.frame.add_updater(lambda f, dt: f.increment_theta(-0.03 * dt))
+
+        self.block.set_opacity(0.95)
+        init_block = self.block.copy().set_opacity(0.75)
+
+        self.block.add_updater(lambda b, dt: b.shift(2 * dt * RIGHT))
+
+        self.force_vector_tex.scale(1.5)
+        self.displacement_vector_tex.scale(1.5)
+
+        self.add(
+            # self.ground_surface,
+            self.base,
+            self.ground,
+            self.block_trace,
+            self.force_vector,
+            self.force_vector_tex,
+            self.displacement_vector_tex,
+            init_block,
+            self.block,
+            self.work_text,
+            self.work_formula,
+            self.frame,
+        )
+
+        self.wait(4)
+
+        formula_rect = SurroundingRectangle(self.formula)
+        formula_rect.fix_in_frame()
+
+        self.play(ShowCreationThenFadeOut(formula_rect))
+        self.wait(0.5)
+        self.play(Indicate(self.work_formula[1:7]))
+        self.wait(2)
+        # self.interact()

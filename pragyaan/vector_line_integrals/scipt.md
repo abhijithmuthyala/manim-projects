@@ -8,7 +8,7 @@
 
 Hey everyone, Abhijith here! In my previous video I shared my perspective on the line integrals of scalar fields where I have discussed how you can tranform the area of a curtain like shape in 3D into a regular 2D integral. In this video, we'll be doing something similar, but with **Vector Field**s this time.
 
-The typical way this concept is introduced is via the work done by a force-field in moving an object along a certain path. I'll also take the same approach, but I believe I can still offer a fresh perspective walking you through how the physical question of calculating the work done by a force-field translates into a question of finding area underneath a graph - the regular 2D integrals we all are familiar with. So stick around till the end and I hope you'll find the video informative. Going forward, I'll assume that you are familiar with the concepts of work done by a constant force and the dot products of vectors. I'll now let the animations take over, and we'll begin with vector fields.
+The typical way this concept is introduced is via the work done by a force-field in moving an object along a certain path. I'll also take the same approach, but I believe I can still offer a fresh perspective walking you through how the physical question of calculating the work done by a force-field translates into a question of finding area underneath a graph - the regular 2D integrals we all are familiar with. So stick around till the end and I hope you'll find the video informative. Going forward, I'll assume that you are familiar with the concepts of work done by a constant force and the dot products of vectors. Let's start by briefly talking about vector fields.
 
 ## WhatAreVectorFields
 
