@@ -39,7 +39,7 @@ StreamLines3D
 
 - With these assumptions in mind, let's calculate the work done along one of these lines. We'll first have to calculate the component of force acting in the direction of the displacement vector. We do that by taking the dot product of the force vector and the **unit** displacement vector. Now that we have the force acting in the direction of dispalcement, multiplying it with the magnitude of displacement gives us the work done along that path.
 
-  - Whenever I see a product of 2 numbers, I immediately picture a rectangle with those dimensions. We can visualize this work done as the area of a rectangle whose width is equal to the length of the displacement vector and whose height is the dot product - the component of force along the displacement.
+  - Whenever you see a product of 2 numbers, it's good to think of it as an area of a rectangle with those dimensions. We can visualize this work done as the area of a rectangle whose width is equal to the length of the displacement vector and whose height is the dot product - the component of force along the displacement.
   - At the beginning of the video, I promised you to show that the work done by the vector field transforms into an area under a graph. Do you see where this video is heading towards? You might feel like this is an unneccessary complication at this point, but you'll hopefully appreciate this idea
     by the end of this video.
   - If we repeat the process for all the lines in our approximate path and take the summation of individual works done, we end up with an approximation of the actual work that would've been done had the particle followed the exact path.

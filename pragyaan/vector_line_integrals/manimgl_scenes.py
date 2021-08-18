@@ -14,6 +14,16 @@ FRAME_RECT = ScreenRectangle(
 )
 FRAME_RECT.fix_in_frame()
 
+FIELD_BACKGROUND = Surface(
+    uv_func=lambda u, v: [u, v, 0],
+    u_range=[-10, 10],
+    v_range=[-6, 6],
+    color=DARK_GREY,
+    opacity=0.75,
+    gloss=0.0,
+    shadow=1.0,
+)
+
 
 class IntroPrevVideo(OpeningSceneLineIntegrals):
     CONFIG = dict(
@@ -552,4 +562,59 @@ class StraightLineWork(Prerequisites):
         # self.interact()
 
 
-#
+class ProductAsArea(Scene):
+    CONFIG = dict(camera_config=CAMERA_CONFIG)
+
+    def construct(self):
+        t2c = {"2": BLUE_E, "4": YELLOW_E}
+
+        product = Tex("(", "2", "*", "4", ")", tex_to_color_map=t2c).scale(3)
+        equiv = Tex("\equiv").scale(3)
+        rect = Rectangle(width=2, height=4, stroke_width=1, fill_opacity=0.5)
+        rect.set_color([t2c[key] for key in t2c])
+        prod_equiv_area = (
+            Group(product, equiv, rect).arrange(buff=2).to_edge(DOWN, buff=1.5)
+        )
+
+        rect_braces = []
+        for text, direction in zip([*product[1::2]], [DOWN, RIGHT]):
+            brace = BraceLabel(rect, text.tex_string, direction)
+            brace.label.set_color(text.get_color())
+            rect_braces.append(brace)
+
+        area_text = Text("As this area").next_to(rect, UP)
+        product_text = Text("Think of this product...").next_to(product, UP)
+        product_text.shift((area_text.get_y() - product_text.get_y()) * UP)
+
+        self.add(FIELD_BACKGROUND)
+        self.play(
+            AnimationGroup(
+                Write(product[:: len(product.tex_strings) - 1], lag_ratio=0),
+                LaggedStart(
+                    *[FadeIn(text, scale=1 / 1.5) for text in product[1:4]],
+                    lag_ratio=0.25,
+                ),
+                lag_ratio=0.1,
+            )
+        )
+        self.play(FadeIn(product_text, scale=1 / 1.25, lag_ratio=0.05, run_time=1.75))
+        self.wait(0.25)
+        self.play(FadeIn(area_text, scale=1 / 1.25, lag_ratio=0.05, run_time=1.25))
+        self.play(
+            AnimationGroup(
+                GrowFromPoint(rect, point=rect.get_corner(UL)),
+                LaggedStartMap(
+                    GrowFromCenter,
+                    Group(*[brace.brace for brace in rect_braces]),
+                    lag_ratio=0,
+                ),
+                run_time=1.5,
+                lag_ratio=0.75,
+            )
+        )
+        self.play(
+            TransformFromCopy(product[1], rect_braces[0].label, path_arc=-PI / 2),
+            TransformFromCopy(product[3], rect_braces[1].label, path_arc=PI / 2),
+            run_time=0.75,
+        )
+        self.wait(2)
