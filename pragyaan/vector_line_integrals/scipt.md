@@ -29,9 +29,9 @@ StreamLines3D
 
 ## WorkDoneAndTheBigIdea
 
-- Consider the vector field defined by the function **F**(x, y). What we are interested in, is the work done by this field in moving a particle along a curve defined by the parametric function **r**(t) as **t** goes from **a** to **b**.
+- Consider the vector field defined by the function **F**(x, y). What we are interested in, is the work done by this field in moving a particle along a curve defined by the parametric function **r**(t) as **t** goes from **a** to **b**. How do we proceed with this problem?
 
-- How do we proceed with this problem? You might be aware that work done by a constant force **F** in moving an object along a straight line path over a distance **D** is just the product **F\*D**.
+- Work done by a constant force in moving an object along a straight line path is the product of the component of force along the displacement, times the magnitude of displacement.
 
   1. So in our attempt to solve this problem, let us assume that the particle travels not exactly along the curve, but along (secant?) lines connecting the points on the curve - because dealing with linear motion is something that we're comfortable with. These points are the outputs of the parametric function **r** for samples of inputs **t** evenly spaced out by a width **$\triangle t$**, which is **xyz** in this case.
 

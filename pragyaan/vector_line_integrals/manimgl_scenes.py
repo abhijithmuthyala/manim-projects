@@ -313,16 +313,26 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.play(ApplyMethod(scalar_field_text.shift, 2 * UP))
 
 
-class Prerequisites(ThreeDScene):
-    CONFIG = dict(camera_config={"anti_alias_width": 1.5, "samples": 32})
+class Prerequisites(Scene):
+    CONFIG = dict(camera_config=CAMERA_CONFIG)
+    force_vector_length = 5
+    force_angle = PI / 6
+    displacement_color = GOLD_E
+    force_color = GREEN_E
+    ground_color = "#003B73"
 
     def setup(self):
+        self.t2c = dict(S=self.displacement_color, F=self.force_color)
         self.frame = self.camera.frame
+        # order matters!
+        self.setup_ground()
+        self.setup_block()
+        self.setup_force_vector()
+        self.setup_force_projection_vector()
+        self.setup_displacement_tex()
+        self.setup_formula()
 
-        self.displacement_color = GOLD_E
-        self.force_color = GREEN_E
-        ground_color = "#003B73"
-
+    def setup_ground(self):
         self.ground_surface = Surface(
             uv_func=lambda u, v: [u, v, 0],
             u_range=[-15, 15],
@@ -330,16 +340,17 @@ class Prerequisites(ThreeDScene):
             gloss=0.25,
             shadow=0.85,
             opacity=0.15,
-            color=ground_color,
+            color=self.ground_color,
         )
         # hmm, choose a smooth texture or just use the surface above?
         self.ground = TexturedSurface(self.ground_surface, "grass", shadow=0.75)
 
-        self.base = Prism(color=ground_color, opacity=0.15, gloss=0.0, shadow=0.75)
+        self.base = Prism(color=self.ground_color, opacity=0.15, gloss=0.0, shadow=0.75)
         self.base.match_width(self.ground_surface).match_height(self.ground_surface)
         self.base.set_depth(1, stretch=True)
         self.base.shift(0.5 * self.base.get_depth() * IN)
 
+    def setup_block(self):
         self.block = Cube(color=MAROON_E, gloss=0.25, shadow=0.15)
         self.block.move_to([-10, 0, 0]).shift(0.5 * self.block.side_length * OUT)
 
@@ -347,15 +358,15 @@ class Prerequisites(ThreeDScene):
             self.block.get_center, stroke_color=GOLD_E, stroke_width=10
         )
 
-        force_vect_length = 5
-        self.force_vector = Vector(force_vect_length * RIGHT, color=self.force_color)
-        self.force_vector.rotate(PI / 2, axis=RIGHT).rotate(PI / 6, axis=DOWN)
-        self.force_vector.add_updater(
-            lambda f: f.shift(self.block.get_center() - self.force_vector.get_start())
+    def setup_force_vector(self):
+        self.force_vector = Vector(
+            self.force_vector_length * RIGHT, color=self.force_color
         )
+        self.force_vector.rotate(PI / 2, axis=RIGHT).rotate(self.force_angle, axis=DOWN)
+        self.add_force_vector_updater(self.force_vector)
 
         self.force_vector_tex = (
-            Tex("\overrightarrow{F}", tex_to_color_map={"F": self.force_color})
+            Tex("\overrightarrow{F}", tex_to_color_map=self.t2c)
             .scale(1.25)
             .rotate(PI / 2, axis=RIGHT)
         )
@@ -365,6 +376,35 @@ class Prerequisites(ThreeDScene):
             )
         )
 
+    def setup_force_projection_vector(self):
+        self.force_projection_vector = Vector().rotate(PI / 2, axis=RIGHT)
+        self.force_projection_vector.set_length(self.force_vector.length_over_dim(0))
+        self.force_projection_vector.shift(
+            self.block.get_center() - self.force_projection_vector.get_start()
+        )
+        self.add_force_vector_updater(self.force_projection_vector)
+
+        self.force_projection_tex = (
+            Tex("\overrightarrow{F}", ".", "\hat{S}", tex_to_color_map=self.t2c)
+            .scale(1.25)
+            .rotate(PI / 2, axis=RIGHT)
+        )
+        self.force_projection_tex.add_updater(
+            lambda tex: tex.next_to(
+                self.force_projection_vector, direction=OUT + RIGHT, buff=0.25
+            )
+        )
+
+        self.projection_line = DashedLine(
+            self.force_vector.get_end(), self.force_projection_vector.get_end()
+        )
+        self.projection_line.add_updater(
+            lambda l: l.put_start_and_end_on(
+                self.force_vector.get_end(), self.force_projection_vector.get_end()
+            )
+        )
+
+    def setup_displacement_tex(self):
         self.displacement_vector_tex = (
             Tex("\overrightarrow{S}", color=self.displacement_color)
             .scale(1.25)
@@ -377,9 +417,10 @@ class Prerequisites(ThreeDScene):
             )
         )
 
+    def setup_formula(self):
         self.work_text = Group(
             Text("Work done by "),
-            Tex("\overrightarrow{F}", tex_to_color_map={"F": self.force_color}),
+            Tex("\overrightarrow{F}", tex_to_color_map=self.t2c),
         ).arrange(buff=0.1, aligned_edge=DOWN)
         self.work_text.fix_in_frame()
 
@@ -391,9 +432,10 @@ class Prerequisites(ThreeDScene):
             "\hat{S}",
             ")",
             "*",
-            "|" "\overrightarrow{S}",
             "|",
-            tex_to_color_map=dict(S=self.displacement_color, F=self.force_color),
+            "\overrightarrow{S}",
+            "|",
+            tex_to_color_map=self.t2c,
         )
         self.work_formula.fix_in_frame()
 
@@ -403,41 +445,111 @@ class Prerequisites(ThreeDScene):
             .to_corner(UL, buff=0.25)
         )
 
-    def construct(self):
+    def add_force_vector_updater(self, force_vector):
+        force_vector.add_updater(
+            lambda f: f.shift(self.block.get_center() - force_vector.get_start())
+        )
+
+    def construct(self, block_velocity=1.5, frame_rotation_velocity=-0.02):
         self.frame.scale(1 / 0.5)
         self.frame.set_euler_angles(phi=70 * DEGREES)
-        self.frame.add_updater(lambda f, dt: f.increment_theta(-0.03 * dt))
+        self.frame.add_updater(
+            lambda f, dt: f.increment_theta(frame_rotation_velocity * dt)
+        )
 
         self.block.set_opacity(0.95)
         init_block = self.block.copy().set_opacity(0.75)
 
-        self.block.add_updater(lambda b, dt: b.shift(2 * dt * RIGHT))
+        self.block.add_updater(lambda b, dt: b.shift(block_velocity * dt * RIGHT))
 
         self.force_vector_tex.scale(1.5)
         self.displacement_vector_tex.scale(1.5)
 
+        self.formula_rect = SurroundingRectangle(self.formula)
+        self.formula_rect.fix_in_frame()
+
         self.add(
             # self.ground_surface,
+            self.formula,
             self.base,
             self.ground,
-            self.block_trace,
-            self.force_vector,
-            self.force_vector_tex,
-            self.displacement_vector_tex,
             init_block,
             self.block,
-            self.work_text,
-            self.work_formula,
+            self.block_trace,
+            self.force_vector,
+            self.force_projection_vector,
+            self.projection_line,
+            self.force_vector_tex,
+            self.force_projection_tex,
+            self.displacement_vector_tex,
             self.frame,
         )
+        self.show_prerequisites()
 
+    def show_prerequisites(self):
         self.wait(4)
-
-        formula_rect = SurroundingRectangle(self.formula)
-        formula_rect.fix_in_frame()
-
-        self.play(ShowCreationThenFadeOut(formula_rect))
+        self.play(ShowCreationThenFadeOut(self.formula_rect))
         self.wait(0.5)
-        self.play(Indicate(self.work_formula[1:7]))
-        self.wait(2)
+
+        self.block.suspend_updating()
+        self.play(
+            Indicate(self.work_formula[2:7]),
+            TransformFromCopy(
+                self.force_projection_vector,
+                self.force_vector,
+                rate_func=there_and_back,
+            ),
+            run_time=2,
+        )
+        self.block.resume_updating()
+        self.wait(4)
         # self.interact()
+
+
+class StraightLineWork(Prerequisites):
+    def show_prerequisites(self):
+        pass
+
+    def construct(self):
+        super().construct(block_velocity=1.25, frame_rotation_velocity=-0.01)
+        rect = SurroundingRectangle(
+            self.work_formula[1:8], stroke_width=1, fill_opacity=0.25, buff=0.05
+        )
+        rect.fix_in_frame()
+
+        self.remove(
+            self.force_projection_vector,
+            self.projection_line,
+            self.force_projection_tex,
+        )
+        self.wait(4)
+        self.block.suspend_updating()
+
+        self.play(
+            AnimationGroup(
+                AnimationGroup(
+                    ShowCreation(self.projection_line),
+                    GrowFromEdge(rect, LEFT),
+                    GrowFromEdge(self.force_projection_vector, LEFT),
+                    run_time=4,
+                ),
+                Write(self.force_projection_tex),
+                lag_ratio=0.75,
+            )
+        )
+
+        self.block.resume_updating()
+        self.wait()
+
+        rect.generate_target()
+        rect.target = SurroundingRectangle(
+            self.work_formula[9:], stroke_width=1, fill_opacity=0.25, buff=0.05
+        )
+        rect.target.fix_in_frame()
+
+        self.play(MoveToTarget(rect))
+        self.wait(4)
+        # self.interact()
+
+
+#
