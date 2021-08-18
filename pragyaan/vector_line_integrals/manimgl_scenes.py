@@ -1,6 +1,7 @@
 from manimlib import *
 
 from ..scalar_line_integrals.scenes import X_COLOR, Y_COLOR, OpeningSceneLineIntegrals
+from .manimgl_animations import ConstantAreaAnimation
 
 CAMERA_CONFIG = dict(samples=32, anti_alias_width=1.50)
 
@@ -618,3 +619,46 @@ class ProductAsArea(Scene):
             run_time=0.75,
         )
         self.wait(2)
+
+
+class RescaleWhileMaintaingArea(Scene):
+    CONFIG = dict(camera_config=CAMERA_CONFIG)
+    initial_width = 1
+    initial_height = 16
+    colors = [BLUE, GREEN]  # width_text, height_text
+    rectangle_style = dict(stroke_width=0, fill_opacity=0.75, shadow=0.5, gloss=0.25)
+
+    def setup(self):
+        self.axes = Axes(
+            [0, 6],
+            [0, 20, 4],
+            width=FRAME_X_RADIUS + 4,
+            height=FRAME_Y_RADIUS + 2,
+            axis_config=dict(include_numbers=True),
+            y_axis_config=dict(line_to_number_direction=UP),
+        )
+        self.axes.to_corner(DL, buff=0.25)
+
+        self.rectangle = Rectangle(
+            width=self.initial_width * self.x_unit,
+            height=self.initial_height * self.y_unit,
+            fill_color=self.colors,
+            **self.rectangle_style,
+        )
+        self.rectangle.next_to(self.axes.get_origin(), UR, buff=0, aligned_edge=DL)
+
+    @property
+    def x_unit(self):
+        return self.axes.x_axis.get_unit_size()
+
+    @property
+    def y_unit(self):
+        return self.axes.y_axis.get_unit_size()
+
+    @property
+    def origin(self):
+        return self.axes.get_origin()
+
+    def construct(self):
+        self.add(FIELD_BACKGROUND)
+        self.interact()
