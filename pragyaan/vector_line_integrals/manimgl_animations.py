@@ -1,3 +1,4 @@
+import numpy as np
 from manimlib.animation.animation import Animation
 from manimlib.constants import DL
 from manimlib.mobject.coordinate_systems import Axes
@@ -12,13 +13,16 @@ class ConstantAreaAnimation(Animation):
         rectangle: Rectangle,
         coordinate_system: Axes,
         target_width: float,
-        **kwargs
+        stretch_about_corner: np.ndarray = DL,
+        **kwargs,
     ):
         super().__init__(rectangle, **kwargs)
         self.coordinate_system = coordinate_system
+        self.target_width = target_width
+        self.stretch_about_corner = DL
+
         self.initial_width = self.mobject.get_width() / self.x_unit
         self.initial_height = self.mobject.get_height() / self.y_unit
-        self.target_width = target_width
 
     @property
     def original_area(self):
@@ -43,9 +47,13 @@ class ConstantAreaAnimation(Animation):
         height *= self.y_unit
 
         self.mobject.set_width(
-            width, stretch=True, about_point=self.mobject.get_corner(DL)
+            width,
+            stretch=True,
+            about_point=self.mobject.get_corner(self.stretch_about_corner),
         )
         self.mobject.set_height(
-            height, stretch=True, about_point=self.mobject.get_corner(DL)
+            height,
+            stretch=True,
+            about_point=self.mobject.get_corner(self.stretch_about_corner),
         )
         return self

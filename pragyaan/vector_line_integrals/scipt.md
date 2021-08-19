@@ -48,7 +48,7 @@ StreamLines3D
 
   - So both the assumptions are relaxed as **$\triangle t$** approaches zero. That's when the summation becomes an integral over the limits 0 and whatever the arc length of the curve is . But how do you even evaluate this integral? The integrand is a function of **t**, but the integration variable is something else. The fact that the variable **t** has a range of values going between **a** and **b** and that the integrand is already a function of **t** should motivate to think that maybe we can express this integral as an integral w.r.t **t** of _some_ function, say **g(t)**. What this means in the context of our visuals is that **we want all our rectangles to have a width $\triangle t$, while maintaing their original area!**
 
-  - If you have a recangle of dimensions **a x b** and you want to rescale it to a new width **w** while maintaing the original area, the new height of the rectangle would be **(a x b) / w**.
+  - Let's say you have a rectangle of size 2 by 8 and you want to change the width of the rectangle, while maintaing the original area. The new height of the rectangle would then be the original area, divided by the new width.
 
   - That means, our new height function, **g(t)** would be, the original area, divided by the new width **$\triangle t$**. And as **$\triangle t$** approaches zero in the limit, the aggregate area representing the work done by the field approaches the area under the graph of the function **g(t)**.
     **QED**!

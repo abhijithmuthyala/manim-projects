@@ -201,7 +201,7 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         run_time=2,
         lag_ratio=0,
         save_state=False,
-        **kwargs
+        **kwargs,
     ):
         if field is None:
             field = self.field
@@ -623,20 +623,21 @@ class ProductAsArea(Scene):
 
 class RescaleWhileMaintaingArea(Scene):
     CONFIG = dict(camera_config=CAMERA_CONFIG)
-    initial_width = 1
-    initial_height = 16
+    initial_width = 2
+    initial_height = 8
     colors = [BLUE, GREEN]  # width_text, height_text
     rectangle_style = dict(stroke_width=0, fill_opacity=0.75, shadow=0.5, gloss=0.25)
 
     def setup(self):
         self.axes = Axes(
             [0, 6],
-            [0, 20, 4],
+            [0, 24, 4],
             width=FRAME_X_RADIUS + 4,
-            height=FRAME_Y_RADIUS + 2,
+            height=FRAME_HEIGHT - 1,
             axis_config=dict(include_numbers=True),
             y_axis_config=dict(line_to_number_direction=UP),
         )
+        self.axes.get_axis_labels("w", "h")
         self.axes.to_corner(DL, buff=0.25)
 
         self.rectangle = Rectangle(
@@ -647,6 +648,60 @@ class RescaleWhileMaintaingArea(Scene):
         )
         self.rectangle.next_to(self.axes.get_origin(), UR, buff=0, aligned_edge=DL)
 
+        brace_buff = 0.1
+        self.rectangle_braces = self.get_rectangle_braces(
+            self.rectangle, ["w", "h"], [UP, RIGHT], self.colors, buff=brace_buff
+        )
+        self.add_rectangle_brace_updaters(brace_buff)
+
+        self.rectangle_copy = self.rectangle.copy()
+        self.rectangle_copy_braces = self.get_rectangle_braces(
+            self.rectangle_copy,
+            [self.initial_width, self.initial_height],
+            [UP, RIGHT],
+            self.colors,
+        )
+
+        self.rectangle_copy_group = VGroup(
+            self.rectangle_copy, self.rectangle_copy_braces
+        )
+        self.rectangle_copy_group.add_background_rectangle(
+            color=DARK_GREY, opacity=0.75, buff=0.25, shadow=0.8, gloss=0.25
+        )
+        self.rectangle_copy_group.background_rectangle.round_corners(radius=0.25)
+        self.rectangle_copy_group.to_corner(UR, buff=0.1)
+
+        self.t2c = {
+            "h": self.colors[1],
+            "w": self.colors[0],
+            f"{self.initial_width}": self.colors[0],
+            f"{self.initial_height}": self.colors[1],
+        }
+        self.area_equation = Tex(
+            "h",
+            "*",
+            "w",
+            "=",
+            str(self.initial_width),
+            "*",
+            str(self.initial_height),
+            tex_to_color_map=self.t2c,
+        )
+        self.new_height = VGroup(
+            Tex("h", tex_to_color_map=self.t2c),
+            Tex("="),
+            VGroup(
+                Tex(
+                    str(self.initial_width),
+                    "*",
+                    str(self.initial_height),
+                    tex_to_color_map=self.t2c,
+                ),
+                Line(0.5 * LEFT, 0.5 * RIGHT),
+                Tex("w", tex_to_color_map=self.t2c),
+            ).arrange(DOWN, buff=0.2),
+        ).arrange(buff=0.25)
+
     @property
     def x_unit(self):
         return self.axes.x_axis.get_unit_size()
@@ -655,10 +710,88 @@ class RescaleWhileMaintaingArea(Scene):
     def y_unit(self):
         return self.axes.y_axis.get_unit_size()
 
-    @property
-    def origin(self):
-        return self.axes.get_origin()
+    @staticmethod
+    def get_rectangle_braces(
+        rectangle, brace_labels, brace_directions, label_colors, **kwargs
+    ):
+        braces = VGroup()
+        for color, direction, label in zip(
+            label_colors, brace_directions, brace_labels
+        ):
+            brace = BraceLabel(
+                rectangle, text=str(label), brace_direction=direction, **kwargs
+            )
+            brace.label.set_color(color)
+            braces.add(brace)
+        return braces
+
+    def add_rectangle_brace_updaters(self, brace_buff):
+        def brace_upd(brace, dim):
+            new_length = self.rectangle.length_over_dim(dim)
+            scale_factor = new_length / brace.brace.length_over_dim(dim)
+
+            brace.brace.rescale_to_fit(new_length, dim, stretch=True)
+            brace.label.scale(scale_factor)
+            brace.next_to(self.rectangle, brace.brace_direction, buff=brace_buff)
+
+        for brace, dim in zip(self.rectangle_braces, [0, 1]):
+            brace.dim = dim
+            brace.add_updater(lambda brace: brace_upd(brace, brace.dim))
+
+    def change_width(self, target_width, **kwargs):
+        self.play(
+            ConstantAreaAnimation(self.rectangle, self.axes, target_width, **kwargs)
+        )
 
     def construct(self):
-        self.add(FIELD_BACKGROUND)
-        self.interact()
+        self.add(
+            FIELD_BACKGROUND,
+            self.axes,
+            self.rectangle,
+        )
+        self.wait()
+
+        self.play(
+            LaggedStart(
+                FadeIn(self.rectangle_copy_group.background_rectangle, scale=1 / 1.25),
+                TransformFromCopy(
+                    self.rectangle, self.rectangle_copy, run_time=1.25, path_arc=PI / 2
+                ),
+                lag_ratio=0.05,
+            )
+        )
+        self.play(
+            LaggedStartMap(
+                GrowFromCenter,
+                self.rectangle_copy_braces,
+                lag_ratio=0.01,
+                run_time=0.75,
+            )
+        )
+        self.wait()
+
+        self.play(*map(GrowFromCenter, self.rectangle_braces))
+
+        trace = TracedPath(
+            lambda: self.rectangle.get_corner(UR),
+            stroke_color=self.colors[1],
+            stroke_width=4,
+        )
+        self.add(trace)
+
+        self.change_width(0.75)
+        self.change_width(5.25, run_time=2)
+        self.change_width(3, run_time=1.25)
+        self.wait()
+
+        eqn_group = Group(self.area_equation, self.new_height).scale(1.25)
+        eqn_group.arrange(DOWN, buff=1).move_to(trace)
+
+        self.play(
+            FadeIn(self.area_equation, scale=1 / 1.25, lag_ratio=0.05, run_time=1.5)
+        )
+        self.wait(0.5)
+        self.play(FadeIn(self.new_height, scale=1 / 1.25, lag_ratio=0.05, run_time=2))
+        self.wait(4)
+
+        # self.interact()
