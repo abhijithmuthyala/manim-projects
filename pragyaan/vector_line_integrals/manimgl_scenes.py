@@ -791,8 +791,6 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
             axis_config=dict(stroke_width=1),
         ),
         field_kwargs=dict(step_multiple=1, length_func=lambda l: 0.75),
-        riemann_gradient=np.tile([BLUE, GREEN], 2)[:-1],
-        area_style=dict(shadow=0.5, gloss=0.1),
     )
 
     @staticmethod
@@ -803,9 +801,26 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
     def field_func(*point: np.ndarray):
         pass
 
-    def get_riemann_sum(self, n_rects=None, gradient=None, **rect_style):
-        if n_rects is None:
-            n_rects = self.n_rects_for_area
+    @property
+    def x_unit(self):
+        return self.plane.x_axis.get_unit_size()
+
+    @property
+    def y_unit(self):
+        return self.plane.y_axis.get_unit_size()
+
+    def get_rectangle_height(self, t, dt):
+        r_t = self.t_func(t)
+        r_t_plus_dt = self.t_func(t + dt)
+        force_vect = self.field_func(*r_t)
+        unit_displacement = normalize(r_t_plus_dt - r_t)
+
+        return np.dot(force_vect, unit_displacement)
+
+    def change_in_t_animation(self, target_t, **kwargs):
+        return ApplyMethod(self.t_tracker.set_value, target_t, **kwargs)
+
+    def get_riemann_sum(self, n_rects, gradient=None, **rect_style):
         if gradient is None:
             gradient = self.riemann_gradient
         style = dict(self.area_style, **rect_style)
@@ -832,28 +847,129 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
         rects.set_color_by_gradient(*gradient)
         return rects
 
+    def get_rescaled_riemann_sum(
+        self,
+        riemann_sum,
+        new_axes,
+    ):
+        x_unit = new_axes.x_axis.get_unit_size()
+        y_unit = new_axes.y_axis.get_unit_size()
+        t_range, dt = np.linspace(
+            self.t_min, self.t_max, len(riemann_sum), endpoint=False, retstep=True
+        )
+        rescaled_sum = VGroup()
+
+        for rect, t in zip(riemann_sum, t_range):
+            r_t = self.t_func(t)
+            r_t_plus_dt = self.t_func(t + dt)
+
+            height = np.dot(self.field_func(*r_t), normalize(r_t_plus_dt - r_t))
+            width = np.linalg.norm(r_t_plus_dt - r_t)
+
+            rescaled_rect = Rectangle(
+                width=dt * x_unit, height=((width * height) / dt) * y_unit
+            ).match_style(rect)
+            rescaled_rect.next_to(
+                new_axes.x_axis.n2p((t + dt) / 2),
+                direction=UP if height > 0 else DOWN,
+                buff=0,
+            )
+            rescaled_sum.add(rescaled_rect)
+
+        return rescaled_sum
+
+    @property
+    def particle_updater(self):
+        def func(particle):
+            particle.move_to(self.c2p(self.t_func(self.t_tracker.get_value())))
+            # particle.move_to(self.curve.get_end())
+
+        return func
+
+    @property
+    def curve_updater(self):
+        def func(curve):
+            curve.pointwise_become_partial(
+                curve.starting_curve, 0, self.t_tracker_alpha
+            )
+
+        return func
+
+    @property
+    def t_tracker_alpha(self):
+        return (self.t_tracker.get_value() - self.t_min) / (self.t_max - self.t_min)
+
+    @property
+    def force_vector_updater(self):
+        def force_upd(force_vector):
+            t = self.t_tracker.get_value()
+            tail = self.c2p(self.t_func(t))
+            field_output = self.field_func(*tail)
+            field_output_norm = np.linalg.norm(field_output)
+            rgba_array = np.array(
+                [
+                    [
+                        *self.field.value_to_rgb(field_output_norm),
+                        force_vector.opacity,
+                    ]
+                ]
+            )
+
+            force_vector.set_length(np.linalg.norm(self.c2p(field_output)))
+            force_vector.set_angle(angle_of_vector(self.c2p(field_output)))
+            force_vector.set_rgba_array(rgba_array)
+            force_vector.shift(tail - force_vector.get_start())
+
+        return force_upd
+
+    @property
+    def displacement_vector_updater(self, dt=0.01):
+        def disp_upd(disp_vector):
+            t = self.t_tracker.get_value()
+            r_t = self.c2p(self.t_func(t))
+            angle = angle_of_vector(self.c2p(self.t_func(t + dt) - r_t))
+
+            disp_vector.set_angle(angle)
+            disp_vector.shift(r_t - disp_vector.get_start())
+
+        return disp_upd
+
     def setup(self):
+        self.t_tracker = ValueTracker(self.t_min)
+        self.add(self.t_tracker)
+
         self.t_axis = NumberLine(x_range=[self.t_min, self.t_max], **self.t_axis_kwargs)
+        self.t_axis.fix_in_frame()
+
         self.setup_axes()
+
         self.curve = get_parametric_curve(
             self.axes,
             self.t_func,
             t_range=[self.t_min, self.t_max, 0.01],
             **self.curve_kwargs,
         )
+        self.curve.starting_curve = self.curve.copy()
+        self.curve.add_updater(self.curve_updater)
 
         self.field = VectorField(
             func=self.field_func, coordinate_system=self.plane, **self.field_kwargs
         )
-        self.area = self.get_riemann_sum()
 
+        self.force_vector = Vector()
+        self.force_vector.add_updater(self.force_vector_updater)
+
+        self.displacement_vector = Vector().set_color(self.curve.get_color())
+        self.displacement_vector.add_updater(self.displacement_vector_updater)
+
+        self.area = self.get_riemann_sum()
         self.frame = self.camera.frame
 
 
 class TypicalApproach(VectorFieldLineIntegrals):
-    CONFIG = dict(t_min=PI, t_max=TAU)
+    CONFIG = dict(t_min=PI, t_max=TAU, n_rects_for_area=2000)
     ellipse_width = 8
-    ellipse_height = 6
+    ellipse_height = 5
 
     @staticmethod
     def field_func(*point: float):
@@ -865,6 +981,7 @@ class TypicalApproach(VectorFieldLineIntegrals):
 
     def setup(self):
         super().setup()
+
         self.background = Surface(
             uv_func=lambda u, v: [u, v, 0],
             u_range=np.array(self.plane.x_range[:2]) * 1.15,
@@ -875,30 +992,25 @@ class TypicalApproach(VectorFieldLineIntegrals):
             shadow=1.0,
         )
 
-        self.title = (
-            Text(
-                "Line Integrals of Vector Fields",
-                color=np.tile([DARK_GREY, GREY], 3)[:-1],
-            )
-            .scale(1.35)
-            .to_edge(UP)
-        )
+        self.title = Text(
+            "Line Integrals of Vector Fields",
+        ).scale(1.35)
         self.title.fix_in_frame()
 
         self.particle = Sphere(
             radius=0.2, color=PINK, opacity=1, gloss=0.25, shadow=0.5
         )
-        self.particle.move_to(self.curve.get_points()[0])
+        self.particle.move_to(self.curve.point_from_proportion(self.t_tracker_alpha))
+        self.particle.add_updater(self.particle_updater)
 
     def construct(self):
-        self.frame.scale(1 / 0.6).shift(UP)
-        self.frame.set_euler_angles(phi=45 * DEGREES)
+        self.frame.scale(1 / 0.6).shift(0.75 * UP)
+        self.frame.set_euler_angles(phi=40 * DEGREES)
 
-        self.add(
-            self.background,
-            self.plane,
-            FRAME_RECT.set_opacity(0.35),
-        )
+        self.title.to_edge(UP, buff=0.25)
+        self.t_axis.to_corner(UL)
+
+        self.add(self.plane)
         self.wait(0.25)
         self.play(
             LaggedStart(
@@ -908,8 +1020,65 @@ class TypicalApproach(VectorFieldLineIntegrals):
             )
         )
         self.wait(0.5)
-        self.play(GrowVectors(self.field, run_time=2, lag_ratio=0.05))
+        self.play(GrowVectors(self.field, run_time=1.5, lag_ratio=0.05))
         self.wait(0.1)
-        self.play(FadeIn(self.particle, scale=1 / 2))
-        self.wait()
-        self.interact()
+        self.play(
+            AnimationGroup(
+                ApplyMethod(self.field.set_opacity, 0.35, run_time=1),
+                FadeIn(self.particle, scale=1 / 2, run_time=0.5),
+                GrowVectors(
+                    VGroup(self.force_vector, self.displacement_vector),
+                    run_time=0.5,
+                    lag_ratio=0.05,
+                ),
+                lag_ratio=0.5,
+            )
+        )
+        self.wait(0.25)
+
+        self.add(self.curve)
+        self.play(
+            self.change_in_t_animation((self.t_max + self.t_min) / 2, run_time=2.5)
+        )
+        self.wait(0.5)
+        self.play(self.change_in_t_animation(self.t_max, run_time=2.5))
+        self.wait(1.5)
+        self.play(self.change_in_t_animation(self.t_min, run_time=1.5))
+
+        self.play(
+            self.change_in_t_animation(self.t_max),
+            run_time=4,
+        )
+
+        self.frame.generate_target()
+        self.frame.target.shift(UP)
+        self.frame.target.set_euler_angles(phi=55 * DEGREES)
+
+        self.play(
+            ShowCreation(self.area),
+            MoveToTarget(self.frame),
+            run_time=3,
+        )
+
+        self.frame.add_updater(lambda frame, dt: frame.increment_theta(0.025 * dt))
+        self.add(self.frame)
+
+        self.play(ApplyWave(self.area, amplitude=0.5, direction=OUT))
+        self.wait(0.25)
+
+        flat_area = self.get_flattened_area(5.05 * LEFT)
+        flat_curve = self.get_flattened_curve(5.05 * LEFT)
+
+        self.curve.save_state()
+        self.play(
+            Transform(self.area, flat_area),
+            Transform(self.curve, flat_curve),
+            run_time=2,
+        )
+
+        # why does the curve come back? non_time_updaters broken??
+        # print(self.curve.time_based_updaters, self.curve.non_time_updaters)
+        # self.curve.clear_updaters()  # even this doesn't work?! What's happening??
+        self.remove(self.curve)
+        self.wait(4)
+        # self.interact()
