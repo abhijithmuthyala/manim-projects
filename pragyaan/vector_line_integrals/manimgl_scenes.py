@@ -1,7 +1,14 @@
 from manimlib import *
+from utils import ellipse
 
-from ..scalar_line_integrals.scenes import X_COLOR, Y_COLOR, OpeningSceneLineIntegrals
-from .manimgl_animations import ConstantAreaAnimation
+from ..scalar_line_integrals.functions import get_parametric_curve
+from ..scalar_line_integrals.scenes import (
+    X_COLOR,
+    Y_COLOR,
+    OpeningSceneLineIntegrals,
+    ScalarLineIntegralScene,
+)
+from .manimgl_animations import ConstantAreaAnimation, GrowVectors, ShrinkVectors
 
 CAMERA_CONFIG = dict(samples=32, anti_alias_width=1.50)
 
@@ -191,31 +198,8 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.frame = self.camera.frame
 
     @staticmethod
-    def field_func(*point: np.ndarray):
+    def field_func(*point: float):
         return np.array([-point[1], point[0], 0])
-
-    def vector_shrink_animation(
-        self,
-        field=None,
-        scale_factor=0.5,
-        run_time=2,
-        lag_ratio=0,
-        save_state=False,
-        **kwargs,
-    ):
-        if field is None:
-            field = self.field
-        anims = []
-
-        for vect in field:
-            if save_state:
-                vect.save_state()
-            anim = ApplyMethod(
-                vect.scale, scale_factor, {"about_point": vect.get_start()}, **kwargs
-            )
-            anims.append(anim)
-
-        return LaggedStart(*anims, run_time=run_time, lag_ratio=lag_ratio)
 
     def construct(self):
         self.frame.scale(1 / 0.65)
@@ -227,8 +211,8 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.wait(0.25)
         self.play(
             ApplyWave(self.title, run_time=1.5),
-            self.vector_shrink_animation(
-                lag_ratio=0.01, run_time=1.5, rate_func=there_and_back
+            ShrinkVectors(
+                self.field, lag_ratio=0.01, run_time=1.5, rate_func=there_and_back
             ),
         )
         self.wait(0.25)
@@ -257,7 +241,7 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
 
         self.play(
             AnimationGroup(
-                self.vector_shrink_animation(scale_factor=0.01, save_state=True),
+                ShrinkVectors(self.field, scale_factor=0.01, save_state=True),
                 LaggedStartMap(GrowFromCenter, self.spheres_at_tails),
                 lag_ratio=0.5,
                 run_time=2,
@@ -308,7 +292,7 @@ class VectorFieldSummary(OpeningSceneLineIntegrals):
         self.title.save_state()
 
         self.play(
-            self.vector_shrink_animation(scale_factor=0.01, run_time=1, save_state=True)
+            ShrinkVectors(self.field, scale_factor=0.01, run_time=1, save_state=True)
         )
         self.raise_sample_spheres_to_output(
             self.spheres_at_tails,
@@ -795,3 +779,137 @@ class RescaleWhileMaintaingArea(Scene):
         self.wait(4)
 
         # self.interact()
+
+
+class VectorFieldLineIntegrals(ScalarLineIntegralScene):
+    CONFIG = dict(
+        camera_config=CAMERA_CONFIG,
+        plane_config=dict(
+            x_range=[-10, 10],
+            y_range=[-6, 6],
+            faded_line_ratio=1,
+            axis_config=dict(stroke_width=1),
+        ),
+        field_kwargs=dict(step_multiple=1, length_func=lambda l: 0.75),
+        riemann_gradient=np.tile([BLUE, GREEN], 2)[:-1],
+        area_style=dict(shadow=0.5, gloss=0.1),
+    )
+
+    @staticmethod
+    def t_func(t):
+        pass
+
+    @staticmethod
+    def field_func(*point: np.ndarray):
+        pass
+
+    def get_riemann_sum(self, n_rects=None, gradient=None, **rect_style):
+        if n_rects is None:
+            n_rects = self.n_rects_for_area
+        if gradient is None:
+            gradient = self.riemann_gradient
+        style = dict(self.area_style, **rect_style)
+
+        rects = VGroup()
+        t_range, dt = np.linspace(
+            self.t_min, self.t_max, n_rects, endpoint=False, retstep=True
+        )
+
+        for t in t_range:
+            r_t = self.t_func(t)
+            r_t_plus_dt = self.t_func(t + dt)
+
+            force_vect = self.field_func(*r_t)
+            unit_displacement = normalize(r_t_plus_dt - r_t)
+            height = np.dot(force_vect, unit_displacement)
+
+            dl = self.c2p(r_t)
+            dr = self.c2p(r_t_plus_dt)
+            ul = self.c2p([*r_t[:2], height])
+            ur = ul + (dr - dl)
+            rects.add(Polygon(ur, ul, dl, dr, **style))
+
+        rects.set_color_by_gradient(*gradient)
+        return rects
+
+    def setup(self):
+        self.t_axis = NumberLine(x_range=[self.t_min, self.t_max], **self.t_axis_kwargs)
+        self.setup_axes()
+        self.curve = get_parametric_curve(
+            self.axes,
+            self.t_func,
+            t_range=[self.t_min, self.t_max, 0.01],
+            **self.curve_kwargs,
+        )
+
+        self.field = VectorField(
+            func=self.field_func, coordinate_system=self.plane, **self.field_kwargs
+        )
+        self.area = self.get_riemann_sum()
+
+        self.frame = self.camera.frame
+
+
+class TypicalApproach(VectorFieldLineIntegrals):
+    CONFIG = dict(t_min=PI, t_max=TAU)
+    ellipse_width = 8
+    ellipse_height = 6
+
+    @staticmethod
+    def field_func(*point: float):
+        x, y = point[:2]
+        return np.array([-y, x, 0])
+
+    def t_func(self, theta):
+        return ellipse(self.ellipse_width / 2, self.ellipse_height / 2, theta)
+
+    def setup(self):
+        super().setup()
+        self.background = Surface(
+            uv_func=lambda u, v: [u, v, 0],
+            u_range=np.array(self.plane.x_range[:2]) * 1.15,
+            v_range=np.array(self.plane.y_range[:2]) * 1.15,
+            color=DARK_GREY,
+            opacity=0.75,
+            gloss=0.0,
+            shadow=1.0,
+        )
+
+        self.title = (
+            Text(
+                "Line Integrals of Vector Fields",
+                color=np.tile([DARK_GREY, GREY], 3)[:-1],
+            )
+            .scale(1.35)
+            .to_edge(UP)
+        )
+        self.title.fix_in_frame()
+
+        self.particle = Sphere(
+            radius=0.2, color=PINK, opacity=1, gloss=0.25, shadow=0.5
+        )
+        self.particle.move_to(self.curve.get_points()[0])
+
+    def construct(self):
+        self.frame.scale(1 / 0.6).shift(UP)
+        self.frame.set_euler_angles(phi=45 * DEGREES)
+
+        self.add(
+            self.background,
+            self.plane,
+            FRAME_RECT.set_opacity(0.35),
+        )
+        self.wait(0.25)
+        self.play(
+            LaggedStart(
+                *[FadeIn(mob, scale=1 / 1.25) for mob in self.title],
+                lag_ratio=0.1,
+                run_time=2.5,
+            )
+        )
+        self.wait(0.5)
+        self.play(GrowVectors(self.field, run_time=2, lag_ratio=0.05))
+        self.wait(0.1)
+        self.play(FadeIn(self.particle, scale=1 / 2))
+        self.wait()
+        self.interact()
