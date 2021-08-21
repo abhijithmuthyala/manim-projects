@@ -4,6 +4,8 @@ from utils import ellipse
 
 from ..scalar_line_integrals.functions import get_parametric_curve
 from ..scalar_line_integrals.scenes import (
+    CURVE_COLOR,
+    T_COLOR,
     X_COLOR,
     Y_COLOR,
     OpeningSceneLineIntegrals,
@@ -968,14 +970,25 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
         self.frame = self.camera.frame
 
 
-class TypicalApproach(VectorFieldLineIntegrals):
+class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
     CONFIG = dict(
         t_min=PI,
         t_max=TAU,
+        t_axis_kwargs=dict(
+            width=8,
+            stroke_width=4,
+            include_numbers=True,
+            decimal_number_config=dict(num_decimal_places=2),
+            numbers_with_elongated_ticks=[PI, TAU],
+            longer_tick_multiple=2,
+        ),
         n_rects_for_area=1000,
     )
     ellipse_width = 8
     ellipse_height = 5
+    x_color = X_COLOR
+    y_color = Y_COLOR
+    t_color = T_COLOR
 
     @staticmethod
     def field_func(*point: float):
@@ -985,8 +998,83 @@ class TypicalApproach(VectorFieldLineIntegrals):
     def t_func(self, theta):
         return ellipse(self.ellipse_width / 2, self.ellipse_height / 2, theta)
 
+    @property
+    def t_tracker_dot_updater(self):
+        def dot_upd(sphere):
+            sphere.move_to(self.t_axis.n2p(self.t_tracker.get_value()))
+
+        return dot_upd
+
+    def setup_field_func_tex(self):
+        self.field_func_tex = Tex(
+            "\overrightarrow{F}",
+            "(",
+            "x",
+            ",",
+            "y",
+            ")",
+            "=",
+            "[",
+            "x",
+            "-",
+            "y",
+            ",",
+            "x",
+            "+",
+            "y",
+            "]",
+        ).set_color_by_tex_to_color_map(self.t2c)
+
+    def setup_curve_tex(self):
+        self.curve_tex = Tex(
+            "\overrightarrow{r}",
+            "(",
+            "t",
+            ")",
+            "=",
+            "[",  # 5
+            "4",
+            "cos",
+            "(",
+            "t",
+            ")",
+            ",",
+            "2.5",  # 12
+            "sin",
+            "(",
+            "t",
+            ")",
+            "]",
+        )
+        t2c = dict(self.t2c, **dict(t=T_COLOR, r=CURVE_COLOR))
+        self.curve_tex.set_color_by_tex_to_color_map(t2c)
+        self.curve_tex[6:8].set_color(self.x_color)
+        self.curve_tex[12:14].set_color(self.y_color)
+
     def setup(self):
         super().setup()
+        for axis, col in zip(self.plane.axes, [X_COLOR, Y_COLOR]):
+            axis.set_stroke(width=4, color=col)
+
+        self.t_axis = NumberLine(
+            [self.t_min, self.t_max, (self.t_max - self.t_min) / 4],
+            **self.t_axis_kwargs,
+        )
+
+        self.t_axis.label = (
+            Tex("t", color=self.t_color)
+            .scale(1.75)
+            .next_to(self.t_axis.n2p(self.t_max), buff=0.3)
+        )
+        self.t_axis.add(self.t_axis.label)
+
+        self.t_tracker_sphere = Sphere(radius=0.125, color=self.t_color)
+        self.t_tracker_sphere.add_updater(self.t_tracker_dot_updater)
+
+        self.t2c = dict(
+            x=X_COLOR,
+            y=Y_COLOR,
+        )
 
         self.background = Surface(
             uv_func=lambda u, v: [u, v, 0],
@@ -1009,6 +1097,11 @@ class TypicalApproach(VectorFieldLineIntegrals):
         self.particle.move_to(self.curve.point_from_proportion(self.t_tracker_alpha))
         self.particle.add_updater(self.particle_updater)
 
+        self.setup_field_func_tex()
+        self.setup_curve_tex()
+
+
+class TypicalApproach(VectorLineIntegralsScenes):
     def construct(self):
         self.frame.scale(1 / 0.6).shift(0.75 * UP)
         self.frame.set_euler_angles(phi=40 * DEGREES)
@@ -1125,3 +1218,115 @@ class TypicalApproach(VectorFieldLineIntegrals):
             ApplyWave(rescaled_riemann_sum, amplitude=0.5),
         )
         self.wait(8)
+
+
+class TheQuestion(VectorLineIntegralsScenes):
+    CONFIG = dict(curve_kwargs=dict(stroke_width=8))
+
+    def construct(self):
+        self.frame.scale(1 / 0.7)
+
+        self.add(self.plane)
+        self.wait(0.25)
+
+        self.show_field()
+        self.show_question()
+        # self.interact()
+
+    def show_field(self):
+        self.field_func_tex.scale(0.85)
+        self.field_func_tex.add_background_rectangle(opacity=0.9, buff=0.1)
+        self.field_func_tex.background_rectangle.round_corners(0.25)
+        self.field_func_tex.fix_in_frame()
+        self.field_func_tex.to_corner(UL, buff=0.01)
+
+        self.play(GrowVectors(self.field, lag_ratio=0.01, run_time=1.75))
+        self.wait(0.05)  # Bug spotted!
+        self.play(
+            ApplyMethod(self.field.set_opacity, 0.5, run_time=0.5),
+            FadeIn(self.field_func_tex, scale=1 / 1.25, lag_ratio=0.05, run_time=1.5),
+        )
+        self.wait()
+
+    def show_question(self):
+        self.curve_tex.scale(0.85)
+        self.curve_tex.add_background_rectangle(opacity=0.9, buff=0.1)
+        self.curve_tex.background_rectangle.round_corners(0.25)
+        self.curve_tex.fix_in_frame()
+        self.curve_tex.next_to(self.field_func_tex, DOWN, buff=0, aligned_edge=LEFT)
+
+        question = (
+            VGroup(
+                Text("Find the work done by the field in"),
+                Text("moving a particle along the curve."),
+            )
+            .scale(0.85)
+            .arrange(DOWN, buff=0.15, aligned_edge=LEFT)
+            .add_background_rectangle(
+                opacity=0.9,
+                buff=0.15,
+                stroke_width=1,
+                stroke_opacity=1,
+                stroke_color=WHITE,
+            )
+        ).set_opacity(0.75)
+        question.background_rectangle.round_corners(0.25)
+        question.fix_in_frame()
+        question.to_corner(UR, buff=0.05)
+
+        self.play(
+            FadeIn(self.particle, scale=1 / 1.25),
+            GrowArrow(self.force_vector),  # why doesn't this animate!?
+            GrowArrow(self.displacement_vector)
+            # GrowVectors([self.displacement_vector, self.force_vector], lag_ratio=0),
+        )
+        self.wait(0.15)
+
+        self.t_axis.add_background_rectangle(
+            buff=0.2, stroke_color=WHITE, stroke_width=1, stroke_opacity=1
+        )
+        self.t_axis.background_rectangle.round_corners(0.25)
+        self.t_tracker_sphere.fix_in_frame()
+        Group(self.t_axis, self.t_tracker_sphere).move_to(1.5 * UP)
+        self.t_axis.fix_in_frame()
+
+        self.play(
+            *map(
+                lambda mob: FadeIn(mob, scale=1 / 1.25, lag_ratio=0),
+                [question, self.t_axis, self.t_tracker_sphere],
+            ),
+            run_time=1.5,
+        )
+
+        self.add(self.curve)
+
+        self.play(
+            AnimationGroup(
+                self.change_in_t_animation(self.t_max, run_time=6),
+                FadeIn(self.curve_tex, scale=1 / 1.25, lag_ratio=0.05, run_time=2),
+                lag_ratio=0.5,
+            )
+        )
+        self.wait(0.5)
+
+        # animations should have a parameter to fix their mobjects in frame
+        range_indicate_anims = [
+            Broadcast(point, small_radius=0.1, big_radius=0.8, color=self.t_color)
+            for point in map(self.t_axis.n2p, [self.t_min, self.t_max])
+        ]
+        for broadcast in range_indicate_anims:
+            anims = broadcast.animations
+            for anim in anims:
+                anim.mobject.saved_state.fix_in_frame()
+
+        self.play(LaggedStart(*range_indicate_anims, lag_ratio=0.5, run_time=2.5))
+        self.wait(0.25)
+        self.play(
+            ApplyWave(question, direction=DOWN),
+            self.change_in_t_animation(
+                (self.t_min + self.t_max) / 2,
+                rate_func=there_and_back,
+            ),
+            run_time=3,
+        )
+        self.wait(4)
