@@ -1,4 +1,5 @@
 from manimlib import *
+
 from utils import ellipse
 
 from ..scalar_line_integrals.functions import get_parametric_curve
@@ -847,16 +848,13 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
         rects.set_color_by_gradient(*gradient)
         return rects
 
-    def get_rescaled_riemann_sum(
-        self,
-        riemann_sum,
-        new_axes,
-    ):
+    def get_rescaled_riemann_sum(self, riemann_sum, new_axes, **style):
         x_unit = new_axes.x_axis.get_unit_size()
         y_unit = new_axes.y_axis.get_unit_size()
         t_range, dt = np.linspace(
             self.t_min, self.t_max, len(riemann_sum), endpoint=False, retstep=True
         )
+        style = dict(self.area_style, **style)
         rescaled_sum = VGroup()
 
         for rect, t in zip(riemann_sum, t_range):
@@ -867,15 +865,19 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
             width = np.linalg.norm(r_t_plus_dt - r_t)
 
             rescaled_rect = Rectangle(
-                width=dt * x_unit, height=((width * height) / dt) * y_unit
-            ).match_style(rect)
+                width=dt * x_unit,
+                height=((width * height) / dt) * y_unit,
+                color=rect.get_color(),
+                **style,
+            )
             rescaled_rect.next_to(
-                new_axes.x_axis.n2p((t + dt) / 2),
-                direction=UP if height > 0 else DOWN,
+                new_axes.x_axis.n2p(t),
+                direction=UR if height > 0 else DR,
                 buff=0,
+                aligned_edge=LEFT,
             )
             rescaled_sum.add(rescaled_rect)
-
+        rescaled_sum.set_style(**style)
         return rescaled_sum
 
     @property
@@ -962,19 +964,23 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
         self.displacement_vector = Vector().set_color(self.curve.get_color())
         self.displacement_vector.add_updater(self.displacement_vector_updater)
 
-        self.area = self.get_riemann_sum()
+        self.area = self.get_riemann_sum(self.n_rects_for_area)
         self.frame = self.camera.frame
 
 
 class TypicalApproach(VectorFieldLineIntegrals):
-    CONFIG = dict(t_min=PI, t_max=TAU, n_rects_for_area=2000)
+    CONFIG = dict(
+        t_min=PI,
+        t_max=TAU,
+        n_rects_for_area=1000,
+    )
     ellipse_width = 8
     ellipse_height = 5
 
     @staticmethod
     def field_func(*point: float):
         x, y = point[:2]
-        return np.array([-y, x, 0])
+        return np.array([x - y, x + y, 0])
 
     def t_func(self, theta):
         return ellipse(self.ellipse_width / 2, self.ellipse_height / 2, theta)
@@ -987,7 +993,7 @@ class TypicalApproach(VectorFieldLineIntegrals):
             u_range=np.array(self.plane.x_range[:2]) * 1.15,
             v_range=np.array(self.plane.y_range[:2]) * 1.15,
             color=DARK_GREY,
-            opacity=0.75,
+            opacity=0.25,
             gloss=0.0,
             shadow=1.0,
         )
@@ -1010,7 +1016,7 @@ class TypicalApproach(VectorFieldLineIntegrals):
         self.title.to_edge(UP, buff=0.25)
         self.t_axis.to_corner(UL)
 
-        self.add(self.plane)
+        self.add(self.background, self.plane)
         self.wait(0.25)
         self.play(
             LaggedStart(
@@ -1024,12 +1030,11 @@ class TypicalApproach(VectorFieldLineIntegrals):
         self.wait(0.1)
         self.play(
             AnimationGroup(
-                ApplyMethod(self.field.set_opacity, 0.35, run_time=1),
+                ApplyMethod(self.field.set_opacity, 0.5, run_time=1),
                 FadeIn(self.particle, scale=1 / 2, run_time=0.5),
                 GrowVectors(
                     VGroup(self.force_vector, self.displacement_vector),
                     run_time=0.5,
-                    lag_ratio=0.05,
                 ),
                 lag_ratio=0.5,
             )
@@ -1063,9 +1068,6 @@ class TypicalApproach(VectorFieldLineIntegrals):
         self.frame.add_updater(lambda frame, dt: frame.increment_theta(0.025 * dt))
         self.add(self.frame)
 
-        self.play(ApplyWave(self.area, amplitude=0.5, direction=OUT))
-        self.wait(0.25)
-
         flat_area = self.get_flattened_area(5.05 * LEFT)
         flat_curve = self.get_flattened_curve(5.05 * LEFT)
 
@@ -1073,12 +1075,53 @@ class TypicalApproach(VectorFieldLineIntegrals):
         self.play(
             Transform(self.area, flat_area),
             Transform(self.curve, flat_curve),
-            run_time=2,
+            run_time=1,
         )
 
         # why does the curve come back? non_time_updaters broken??
         # print(self.curve.time_based_updaters, self.curve.non_time_updaters)
         # self.curve.clear_updaters()  # even this doesn't work?! What's happening??
         self.remove(self.curve)
-        self.wait(4)
+        self.show_single_integral()
         # self.interact()
+
+    def show_single_integral(self):
+
+        axes = Axes(
+            x_range=[3, 7, 1],
+            y_range=[0, 16, 4],
+            height=6,
+            width=6,
+            axis_config=dict(include_numbers=True),
+            y_axis_config=dict(line_to_number_direction=UP),
+        )
+        axes.x_axis.shift(
+            axes.y_axis.n2p(axes.y_axis.x_min) - axes.x_axis.n2p(axes.x_axis.x_min)
+        )
+        axes.fix_in_frame()
+        axes.to_corner(DL, buff=0.25)
+
+        rescaled_riemann_sum = self.get_rescaled_riemann_sum(
+            self.area, axes, fill_opacity=0.35
+        )
+        rescaled_riemann_sum.fix_in_frame()
+
+        self.play(ApplyMethod(self.frame.shift, 4.5 * LEFT + 1.5 * DOWN, run_time=0.75))
+        self.wait(0.25)
+        self.play(
+            AnimationGroup(
+                ShowCreation(axes),
+                LaggedStart(
+                    *[GrowFromEdge(mob, DOWN) for mob in rescaled_riemann_sum],
+                    lag_ratio=0,
+                ),
+                lag_ratio=0.25,
+                run_time=1,
+            )
+        )
+        self.wait(0.15)
+        self.play(
+            ApplyWave(self.area, amplitude=0.5, direction=OUT),
+            ApplyWave(rescaled_riemann_sum, amplitude=0.5),
+        )
+        self.wait(8)
