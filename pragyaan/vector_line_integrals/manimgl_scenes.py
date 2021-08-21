@@ -1024,6 +1024,11 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
             "y",
             "]",
         ).set_color_by_tex_to_color_map(self.t2c)
+        self.field_func_tex.scale(0.85)
+        self.field_func_tex.add_background_rectangle(opacity=0.9, buff=0.1)
+        self.field_func_tex.background_rectangle.round_corners(0.25)
+        self.field_func_tex.fix_in_frame()
+        self.field_func_tex.to_corner(UL, buff=0.01)
 
     def setup_curve_tex(self):
         self.curve_tex = Tex(
@@ -1050,6 +1055,59 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
         self.curve_tex.set_color_by_tex_to_color_map(t2c)
         self.curve_tex[6:8].set_color(self.x_color)
         self.curve_tex[12:14].set_color(self.y_color)
+
+        self.curve_tex.scale(0.85)
+        self.curve_tex.add_background_rectangle(opacity=0.9, buff=0.1)
+        self.curve_tex.background_rectangle.round_corners(0.25)
+        self.curve_tex.fix_in_frame()
+        self.curve_tex.next_to(self.field_func_tex, DOWN, buff=0, aligned_edge=LEFT)
+
+    def setup_question(self):
+        self.question = (
+            VGroup(
+                Text("Find the work done by the field in"),
+                Text("moving a particle along the curve."),
+            )
+            .scale(0.85)
+            .arrange(DOWN, buff=0.15, aligned_edge=LEFT)
+            .add_background_rectangle(
+                opacity=0.9,
+                buff=0.15,
+                stroke_width=1,
+                stroke_opacity=1,
+                stroke_color=WHITE,
+            )
+        ).set_opacity(0.75)
+        self.question.background_rectangle.round_corners(0.25)
+        self.question.fix_in_frame()
+        self.question.to_corner(UR, buff=0.05)
+
+    def setup_t_axis(self):
+        self.t_axis.add_background_rectangle(
+            buff=0.2, stroke_color=WHITE, stroke_width=1, stroke_opacity=1
+        )
+        self.t_axis.background_rectangle.round_corners(0.25)
+        self.t_tracker_sphere.fix_in_frame()
+        Group(self.t_axis, self.t_tracker_sphere).move_to(1.5 * UP)
+        self.t_axis.fix_in_frame()
+
+    def t_range_broadcast_animations(self, small_radius, big_radius, **kwargs):
+        # animations should have a parameter to fix their mobjects in frame
+        range_indicate_anims = [
+            Broadcast(
+                point,
+                small_radius=small_radius,
+                big_radius=big_radius,
+                color=self.t_color,
+            )
+            for point in map(self.t_axis.n2p, [self.t_min, self.t_max])
+        ]
+        for broadcast in range_indicate_anims:
+            anims = broadcast.animations
+            for anim in anims:
+                anim.mobject.saved_state.fix_in_frame()
+
+        return LaggedStart(*range_indicate_anims, **kwargs)
 
     def setup(self):
         super().setup()
@@ -1096,9 +1154,6 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
         )
         self.particle.move_to(self.curve.point_from_proportion(self.t_tracker_alpha))
         self.particle.add_updater(self.particle_updater)
-
-        self.setup_field_func_tex()
-        self.setup_curve_tex()
 
 
 class TypicalApproach(VectorLineIntegralsScenes):
@@ -1234,12 +1289,7 @@ class TheQuestion(VectorLineIntegralsScenes):
         # self.interact()
 
     def show_field(self):
-        self.field_func_tex.scale(0.85)
-        self.field_func_tex.add_background_rectangle(opacity=0.9, buff=0.1)
-        self.field_func_tex.background_rectangle.round_corners(0.25)
-        self.field_func_tex.fix_in_frame()
-        self.field_func_tex.to_corner(UL, buff=0.01)
-
+        self.setup_field_func_tex()
         self.play(GrowVectors(self.field, lag_ratio=0.01, run_time=1.75))
         self.wait(0.05)  # Bug spotted!
         self.play(
@@ -1249,30 +1299,8 @@ class TheQuestion(VectorLineIntegralsScenes):
         self.wait()
 
     def show_question(self):
-        self.curve_tex.scale(0.85)
-        self.curve_tex.add_background_rectangle(opacity=0.9, buff=0.1)
-        self.curve_tex.background_rectangle.round_corners(0.25)
-        self.curve_tex.fix_in_frame()
-        self.curve_tex.next_to(self.field_func_tex, DOWN, buff=0, aligned_edge=LEFT)
-
-        question = (
-            VGroup(
-                Text("Find the work done by the field in"),
-                Text("moving a particle along the curve."),
-            )
-            .scale(0.85)
-            .arrange(DOWN, buff=0.15, aligned_edge=LEFT)
-            .add_background_rectangle(
-                opacity=0.9,
-                buff=0.15,
-                stroke_width=1,
-                stroke_opacity=1,
-                stroke_color=WHITE,
-            )
-        ).set_opacity(0.75)
-        question.background_rectangle.round_corners(0.25)
-        question.fix_in_frame()
-        question.to_corner(UR, buff=0.05)
+        self.setup_curve_tex()
+        self.setup_question()
 
         self.play(
             FadeIn(self.particle, scale=1 / 1.25),
@@ -1282,18 +1310,11 @@ class TheQuestion(VectorLineIntegralsScenes):
         )
         self.wait(0.15)
 
-        self.t_axis.add_background_rectangle(
-            buff=0.2, stroke_color=WHITE, stroke_width=1, stroke_opacity=1
-        )
-        self.t_axis.background_rectangle.round_corners(0.25)
-        self.t_tracker_sphere.fix_in_frame()
-        Group(self.t_axis, self.t_tracker_sphere).move_to(1.5 * UP)
-        self.t_axis.fix_in_frame()
-
+        self.setup_t_axis()
         self.play(
             *map(
                 lambda mob: FadeIn(mob, scale=1 / 1.25, lag_ratio=0),
-                [question, self.t_axis, self.t_tracker_sphere],
+                [self.question, self.t_axis, self.t_tracker_sphere],
             ),
             run_time=1.5,
         )
@@ -1309,20 +1330,12 @@ class TheQuestion(VectorLineIntegralsScenes):
         )
         self.wait(0.5)
 
-        # animations should have a parameter to fix their mobjects in frame
-        range_indicate_anims = [
-            Broadcast(point, small_radius=0.1, big_radius=0.8, color=self.t_color)
-            for point in map(self.t_axis.n2p, [self.t_min, self.t_max])
-        ]
-        for broadcast in range_indicate_anims:
-            anims = broadcast.animations
-            for anim in anims:
-                anim.mobject.saved_state.fix_in_frame()
-
-        self.play(LaggedStart(*range_indicate_anims, lag_ratio=0.5, run_time=2.5))
+        self.play(
+            self.t_range_broadcast_animations(0.1, 0.8, lag_ratio=0.5, run_time=2.5)
+        )
         self.wait(0.25)
         self.play(
-            ApplyWave(question, direction=DOWN),
+            ApplyWave(self.question, direction=DOWN),
             self.change_in_t_animation(
                 (self.t_min + self.t_max) / 2,
                 rate_func=there_and_back,
