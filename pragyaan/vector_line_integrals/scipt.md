@@ -33,7 +33,7 @@ StreamLines3D
 
 - Work done by a constant force in moving an object along a straight line path is the product of the component of force along the displacement, times the magnitude of displacement.
 
-  1. So in our attempt to solve this problem, let us assume that the particle travels not exactly along the curve, but along (secant?) lines connecting the points on the curve - because dealing with linear motion is something that we're comfortable with. These points are the outputs of the parametric function **r** for samples of inputs **t** evenly spaced out by a width **$\triangle t$**, which is **xyz** in this case.
+  1. So in our attempt to solve this problem, let us assume that the particle travels not exactly along the curve, but along (secant?) lines connecting the points on the curve, which are the outputs of the parametric function **r** for samples of inputs **t** evenly spaced out by a certain width, which is about 0.8 for now.
 
   2. We'll also assume that whatever force acts on the particle at the beginning of each line, continues to act throughout that line.
 

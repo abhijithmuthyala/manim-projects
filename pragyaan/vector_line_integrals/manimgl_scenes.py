@@ -882,6 +882,14 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
         rescaled_sum.set_style(**style)
         return rescaled_sum
 
+    def shrink_riemann_sum(self, riemann_sum, factor=0.01, dim=2, save_state=True):
+        about_edge = [LEFT, DOWN, IN][dim]
+        for rect in riemann_sum:
+            if save_state:
+                rect.save_state()
+            rect.stretch(factor, dim=dim, about_edge=about_edge)
+        return self
+
     @property
     def particle_updater(self):
         def func(particle):
@@ -907,8 +915,8 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
     def force_vector_updater(self):
         def force_upd(force_vector):
             t = self.t_tracker.get_value()
-            tail = self.c2p(self.t_func(t))
-            field_output = self.field_func(*tail)
+            point = self.t_func(t)
+            field_output = self.field_func(*point)
             field_output_norm = np.linalg.norm(field_output)
             rgba_array = np.array(
                 [
@@ -922,7 +930,7 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
             force_vector.set_length(np.linalg.norm(self.c2p(field_output)))
             force_vector.set_angle(angle_of_vector(self.c2p(field_output)))
             force_vector.set_rgba_array(rgba_array)
-            force_vector.shift(tail - force_vector.get_start())
+            force_vector.shift(self.c2p(point) - force_vector.get_start())
 
         return force_upd
 
@@ -937,6 +945,25 @@ class VectorFieldLineIntegrals(ScalarLineIntegralScene):
             disp_vector.shift(r_t - disp_vector.get_start())
 
         return disp_upd
+
+    def get_force_vector_rgba(self, t):
+        point = self.t_func(t)
+        field_output = self.field_func(*point)
+        field_output_norm = np.linalg.norm(field_output)
+        rgba_array = np.array(
+            [
+                [
+                    *self.field.value_to_rgb(field_output_norm),
+                    self.force_vector.opacity,
+                ]
+            ]
+        )
+        return rgba_array
+
+    def get_force_vector_length(self, t):
+        point = self.t_func(t)
+        field_output = self.field_func(*point)
+        return np.linalg.norm(self.c2p(field_output))
 
     def setup(self):
         self.t_tracker = ValueTracker(self.t_min)
@@ -982,6 +1009,7 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
             numbers_with_elongated_ticks=[PI, TAU],
             longer_tick_multiple=2,
         ),
+        curve_kwargs=dict(stroke_width=8),
         n_rects_for_area=1000,
     )
     ellipse_width = 8
@@ -1004,6 +1032,92 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
             sphere.move_to(self.t_axis.n2p(self.t_tracker.get_value()))
 
         return dot_upd
+
+    @property
+    def vector_straight_path_updater(self):
+        def upd(vect):
+            vect.shift(self.particle.get_center() - vect.get_start())
+
+        return upd
+
+    def move_particle_along_straight_lines(
+        self,
+        riemann_sum,
+        update_t_tracker=True,
+        update_displacement_vector=True,
+        update_force_vector=True,
+        reverse=False,
+        **kwargs,
+    ):
+        n_rects = len(riemann_sum)
+        t_vals, dt = np.linspace(
+            self.t_min, self.t_max, n_rects, endpoint=False, retstep=True
+        )
+        vect_direction = 1
+
+        if reverse:
+            riemann_sum = riemann_sum[::-1]
+            t_vals = t_vals[::-1]
+            vect_direction = -1
+
+        paths = []
+        anims = []
+
+        if update_force_vector:
+            self.force_vector.add_updater(self.vector_straight_path_updater)
+
+        if update_displacement_vector:
+            self.displacement_vector.add_updater(self.vector_straight_path_updater)
+
+        for index, t in enumerate(t_vals):
+            start = self.c2p(self.t_func(t))
+            end = self.c2p(self.t_func(t + dt))
+            target_t_alpha = (index + 1) / n_rects
+            if reverse:
+                start, end = end, start
+                target_t_alpha = 1 - target_t_alpha
+
+            path = Line(start, end).set_opacity(0)
+            paths.append(path)
+
+            # anims
+            anims = []
+            if update_t_tracker:
+                anims.append(
+                    ApplyMethod(
+                        self.t_tracker.set_value,
+                        interpolate(self.t_min, self.t_max, target_t_alpha),
+                    )
+                )
+            if update_displacement_vector:
+                self.displacement_vector.set_angle(
+                    angle_of_vector((end - start) * vect_direction)
+                )
+            if update_force_vector:
+                self.force_vector.set_angle(
+                    angle_of_vector((end - start) * vect_direction)
+                )
+
+            anims.append(MoveAlongPath(self.particle, path))
+            self.play(*anims, rate_func=linear, **kwargs)
+
+    def parametric_function_map_animation(
+        self, t_samples, frame_scale_factor=1, **kwargs
+    ):
+        # why is frame scale needed??
+        anims = []
+        rate_func = kwargs.pop("rate_func", smooth)
+
+        for sphere in t_samples:
+            t = self.t_axis.p2n(sphere.get_center())
+            anims.append(
+                ApplyMethod(
+                    sphere.move_to,
+                    self.c2p(self.t_func(t)) * frame_scale_factor,
+                    rate_func=rate_func,
+                )
+            )
+        return LaggedStart(*anims, **kwargs)
 
     def setup_field_func_tex(self):
         self.field_func_tex = Tex(
@@ -1082,6 +1196,42 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
         self.question.fix_in_frame()
         self.question.to_corner(UR, buff=0.05)
 
+    def setup_assumptions_text(self):
+        # was Paragraph removed?
+        text_buff = 0.15
+        num_to_text_buff = 0.2
+
+        text = Text("Assumptions:")
+        assumption_numbers = VGroup(Text("1."), Text("2."))
+        assumption1 = VGroup(
+            Text("Particle travels along the straight lines"),
+            Text("connecting points on the curve."),
+        )
+        assumption2 = VGroup(
+            Text("Force acting on the particle remains"),
+            Text("constant along a given line."),
+        )
+        num_text_groups = []
+        for number, assumption in zip(assumption_numbers, [assumption1, assumption2]):
+            assumption.arrange(DOWN, buff=text_buff, aligned_edge=LEFT)
+            group = VGroup(number, assumption).arrange(
+                buff=num_to_text_buff,  # aligned_edge=UP
+            )
+            num_text_groups.append(group)
+
+        self.assumptions = VGroup(text, *num_text_groups).scale(0.75)
+        self.assumptions.arrange(DOWN, buff=0.3, aligned_edge=LEFT)
+        self.assumptions.add_background_rectangle(
+            buff=0.2, stroke_color=WHITE, stroke_width=1, stroke_opacity=1
+        )
+        self.assumptions.background_rectangle.round_corners(0.25)
+        self.assumptions.to_corner(UR, buff=0.05)
+        self.assumptions.fix_in_frame()
+
+        self.assumptions.assumption1 = assumption1
+        self.assumptions.assumption2 = assumption2
+        self.assumptions.title = text
+
     def setup_t_axis(self):
         self.t_axis.add_background_rectangle(
             buff=0.2, stroke_color=WHITE, stroke_width=1, stroke_opacity=1
@@ -1091,8 +1241,11 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
         Group(self.t_axis, self.t_tracker_sphere).move_to(1.5 * UP)
         self.t_axis.fix_in_frame()
 
-    def t_range_broadcast_animations(self, small_radius, big_radius, **kwargs):
+    def t_range_broadcast_animations(
+        self, small_radius, big_radius, n_samples, **kwargs
+    ):
         # animations should have a parameter to fix their mobjects in frame
+        t_vals = np.linspace(self.t_min, self.t_max, n_samples, endpoint=True)
         range_indicate_anims = [
             Broadcast(
                 point,
@@ -1100,7 +1253,7 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
                 big_radius=big_radius,
                 color=self.t_color,
             )
-            for point in map(self.t_axis.n2p, [self.t_min, self.t_max])
+            for point in map(self.t_axis.n2p, t_vals)
         ]
         for broadcast in range_indicate_anims:
             anims = broadcast.animations
@@ -1331,7 +1484,7 @@ class TheQuestion(VectorLineIntegralsScenes):
         self.wait(0.5)
 
         self.play(
-            self.t_range_broadcast_animations(0.1, 0.8, lag_ratio=0.5, run_time=2.5)
+            self.t_range_broadcast_animations(0.1, 0.8, 2, lag_ratio=0.5, run_time=2.5)
         )
         self.wait(0.25)
         self.play(
@@ -1343,3 +1496,111 @@ class TheQuestion(VectorLineIntegralsScenes):
             run_time=3,
         )
         self.wait(4)
+
+
+class ApproximationScene(VectorLineIntegralsScenes):
+    CONFIG = dict(t_axis_kwargs=dict(width=5))
+
+    def construct(self):
+        self.frame.scale(1 / 0.7)
+        self.setup_field_func_tex()
+        self.setup_curve_tex()
+        self.setup_question()
+        self.setup_t_axis()
+        self.setup_assumptions_text()
+
+        self.curve_copy = self.curve.starting_curve.copy().set_stroke(opacity=0.5)
+        Group(self.t_axis, self.t_tracker_sphere).center().to_edge(
+            LEFT, buff=0.1
+        ).shift(1.5 * UP)
+
+        self.add(
+            self.plane,
+            self.field.set_opacity(0.25),
+            # self.force_vector,
+            self.displacement_vector,
+            self.particle,
+            self.field_func_tex,
+            self.curve_tex,
+            self.curve_copy,
+            self.t_axis,
+            self.t_tracker_sphere,
+        )
+
+        self.assumptions[2:].set_opacity(0.5)
+        self.wait(3)
+        self.play(FadeIn(self.assumptions, scale=1 / 1.25))
+        self.play(
+            ShowPassingFlashWithThinningStrokeWidth(
+                self.curve_copy,
+                time_width=1,
+                n_segments=20,
+            ),
+            ApplyWave(
+                self.curve_copy,
+                amplitude=0.15,
+            ),
+            ApplyMethod(self.assumptions[2].set_opacity, 1, lag_ratio=1, run_time=2),
+            run_time=2,
+        )
+
+        self.riemann_sum = self.get_riemann_sum(4, stroke_width=4)
+        self.shrink_riemann_sum(self.riemann_sum)
+        self.play(ShowCreation(self.riemann_sum, lag_ratio=0, run_time=0.35))
+
+        for mob in [self.particle, self.force_vector, self.displacement_vector]:
+            mob.clear_updaters()
+        self.bring_to_front(self.particle, self.displacement_vector)
+
+        self.play(
+            ApplyMethod(
+                self.displacement_vector.set_angle,
+                angle_of_vector(-op.sub(*self.riemann_sum[0].get_vertices()[2:])),
+                run_time=0.5,
+            )
+        )
+        self.wait(0.15)
+
+        self.move_particle_along_straight_lines(
+            self.riemann_sum, update_force_vector=False, run_time=1
+        )
+        self.wait(2)
+
+        # r_t func map
+        self.t_samples = self.get_samples_on_t_axis(
+            len(self.riemann_sum) + 1,
+            radius=0.075,
+            # color=WHITE,
+            gloss=0.75,
+            shadow=0.25,
+        )
+        self.t_samples.fix_in_frame()
+
+        self.play(
+            self.t_range_broadcast_animations(
+                0.1, 0.6, len(self.riemann_sum) + 1, lag_ratio=0.0
+            ),
+            LaggedStart(*[FadeIn(sph, scale=1 / 2) for sph in self.t_samples]),
+            run_time=2,
+        )
+        self.wait(0.1)
+
+        self.play(
+            self.parametric_function_map_animation(
+                self.t_samples,
+                frame_scale_factor=0.7,  # why is this needed?
+                run_time=3,
+                rate_func=there_and_back_with_pause,
+                lag_ratio=0.01,
+            )
+        )
+        self.wait()
+        self.move_particle_along_straight_lines(
+            self.riemann_sum,
+            update_force_vector=False,
+            reverse=True,
+            run_time=0.5,
+        )
+        self.wait()
+        # assumption2
+        # self.interact()
