@@ -1070,7 +1070,8 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
             self.displacement_vector.add_updater(self.vector_straight_path_updater)
 
         for index, t in enumerate(t_vals):
-            start = self.c2p(self.t_func(t))
+            rt = self.t_func(t)
+            start = self.c2p(rt)
             end = self.c2p(self.t_func(t + dt))
             target_t_alpha = (index + 1) / n_rects
             if reverse:
@@ -1094,9 +1095,10 @@ class VectorLineIntegralsScenes(VectorFieldLineIntegrals):
                     angle_of_vector((end - start) * vect_direction)
                 )
             if update_force_vector:
-                self.force_vector.set_angle(
-                    angle_of_vector((end - start) * vect_direction)
-                )
+                output_t = self.field_func(*rt)
+                self.force_vector.set_angle(angle_of_vector(self.c2p(output_t)))
+                self.force_vector.set_length(np.linalg.norm(output_t))
+                self.force_vector.set_rgba_array(self.get_force_vector_rgba(t))
 
             anims.append(MoveAlongPath(self.particle, path))
             self.play(*anims, rate_func=linear, **kwargs)
@@ -1501,7 +1503,9 @@ class TheQuestion(VectorLineIntegralsScenes):
 class ApproximationScene(VectorLineIntegralsScenes):
     CONFIG = dict(t_axis_kwargs=dict(width=5))
 
-    def construct(self):
+    def setup(self):
+        super().setup()
+
         self.frame.scale(1 / 0.7)
         self.setup_field_func_tex()
         self.setup_curve_tex()
@@ -1514,10 +1518,23 @@ class ApproximationScene(VectorLineIntegralsScenes):
             LEFT, buff=0.1
         ).shift(1.5 * UP)
 
+        self.assumptions[2:].set_opacity(0.5)
+
+        self.riemann_sum = self.get_riemann_sum(4, stroke_width=4)
+        self.shrink_riemann_sum(self.riemann_sum)
+
+        self.t_samples = self.get_samples_on_t_axis(
+            len(self.riemann_sum) + 1,
+            radius=0.075,
+            # color=WHITE,
+            gloss=0.75,
+            shadow=0.25,
+        )
+        self.t_samples.fix_in_frame()
+
         self.add(
             self.plane,
             self.field.set_opacity(0.25),
-            # self.force_vector,
             self.displacement_vector,
             self.particle,
             self.field_func_tex,
@@ -1527,26 +1544,34 @@ class ApproximationScene(VectorLineIntegralsScenes):
             self.t_tracker_sphere,
         )
 
-        self.assumptions[2:].set_opacity(0.5)
+    def construct(self):
         self.wait(3)
         self.play(FadeIn(self.assumptions, scale=1 / 1.25))
         self.play(
-            ShowPassingFlashWithThinningStrokeWidth(
-                self.curve_copy,
-                time_width=1,
-                n_segments=20,
-            ),
-            ApplyWave(
-                self.curve_copy,
-                amplitude=0.15,
-            ),
-            ApplyMethod(self.assumptions[2].set_opacity, 1, lag_ratio=1, run_time=2),
-            run_time=2,
+            AnimationGroup(
+                ApplyMethod(
+                    self.assumptions[2].set_opacity, 1, lag_ratio=1, run_time=2
+                ),
+                LaggedStart(
+                    ShowPassingFlashWithThinningStrokeWidth(
+                        self.curve_copy,
+                        time_width=1,
+                        n_segments=20,
+                    ),
+                    ApplyWave(
+                        self.curve_copy,
+                        amplitude=0.125,
+                    ),
+                    lag_ratio=0,
+                ),
+                run_time=2,
+                lag_ratio=0.45,
+            )
         )
 
-        self.riemann_sum = self.get_riemann_sum(4, stroke_width=4)
-        self.shrink_riemann_sum(self.riemann_sum)
-        self.play(ShowCreation(self.riemann_sum, lag_ratio=0, run_time=0.35))
+        for rect in self.riemann_sum:
+            rect.flip(axis=OUT)
+        self.play(ShowCreation(self.riemann_sum, lag_ratio=0.5, run_time=2))
 
         for mob in [self.particle, self.force_vector, self.displacement_vector]:
             mob.clear_updaters()
@@ -1555,7 +1580,7 @@ class ApproximationScene(VectorLineIntegralsScenes):
         self.play(
             ApplyMethod(
                 self.displacement_vector.set_angle,
-                angle_of_vector(-op.sub(*self.riemann_sum[0].get_vertices()[2:])),
+                angle_of_vector(op.sub(*self.riemann_sum[0].get_vertices()[2:])),
                 run_time=0.5,
             )
         )
@@ -1564,17 +1589,7 @@ class ApproximationScene(VectorLineIntegralsScenes):
         self.move_particle_along_straight_lines(
             self.riemann_sum, update_force_vector=False, run_time=1
         )
-        self.wait(2)
-
-        # r_t func map
-        self.t_samples = self.get_samples_on_t_axis(
-            len(self.riemann_sum) + 1,
-            radius=0.075,
-            # color=WHITE,
-            gloss=0.75,
-            shadow=0.25,
-        )
-        self.t_samples.fix_in_frame()
+        self.wait(2.5)
 
         self.play(
             self.t_range_broadcast_animations(
@@ -1585,6 +1600,7 @@ class ApproximationScene(VectorLineIntegralsScenes):
         )
         self.wait(0.1)
 
+        # r_t func map
         self.play(
             self.parametric_function_map_animation(
                 self.t_samples,
@@ -1595,12 +1611,22 @@ class ApproximationScene(VectorLineIntegralsScenes):
             )
         )
         self.wait()
+
         self.move_particle_along_straight_lines(
             self.riemann_sum,
             update_force_vector=False,
             reverse=True,
-            run_time=0.5,
+            run_time=0.6,
         )
-        self.wait()
+        self.wait(0.05)
+
         # assumption2
+        self.play(
+            GrowArrow(self.force_vector),
+            ApplyMethod(self.assumptions[-1].set_opacity, 1, lag_ratio=1),
+            run_time=1.75,
+        )
+        self.bring_to_front(self.assumptions)
+        self.move_particle_along_straight_lines(self.riemann_sum, run_time=1.15)
+        self.wait(4)
         # self.interact()
